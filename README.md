@@ -2,7 +2,7 @@
 
 **简体中文** | [English](README_EN.md)
 
-**PubMed / Europe PMC 文献检索插件 for DeepSeek Harness (DSH) · v0.1.0**
+**PubMed / Europe PMC 文献检索插件 for DeepSeek Harness (DSH) · v0.1.1**
 
 把 [`@cyanheads/pubmed-mcp-server`](https://github.com/cyanheads/pubmed-mcp-server) 的核心能力
 移植成 DSH 原生模型工具：搜索、文章元数据、全文、引用格式化、MeSH、ID 转换等 11 个工具，
@@ -29,9 +29,9 @@
 **1. 一条命令安装（官方 CLI，推荐）· 无需下载源码**
 
 ```bash
-dsh plugin --profile web add github:aiyacharley/dsh-pubmed   # 从 GitHub 安装
+dsh plugin --profile web add dsh-pubmed@latest              # 从 npm 安装（已发布）
+# 或从 GitHub：dsh plugin --profile web add github:aiyacharley/dsh-pubmed
 # 本机有源码：dsh plugin --profile web add /path/to/dsh-pubmed
-# 发布到 npm 后：dsh plugin --profile web add dsh-pubmed@0.1.0
 ```
 
 装完**重启 DSH**，`pubmed_*` 出现在所有会话。
@@ -46,7 +46,7 @@ dsh plugin --profile web add github:aiyacharley/dsh-pubmed   # 从 GitHub 安装
 ````text
 【请帮我持久化安装 dsh-pubmed（重启后所有会话可用）】
 1) 找到 DSH profile 名称（如 web；不确定就先问）。
-2) 运行 dsh plugin --profile <名称> add github:aiyacharley/dsh-pubmed。
+2) 运行 dsh plugin --profile <名称> add dsh-pubmed@latest。
 3) 提示用户重启 DSH。
 ````
 

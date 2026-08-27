@@ -1,6 +1,6 @@
 # dsh-pubmed
 
-**PubMed / Europe PMC literature search plugin for DeepSeek Harness (DSH) · v0.1.0**
+**PubMed / Europe PMC literature search plugin for DeepSeek Harness (DSH) · v0.1.1**
 
 Ports the core capabilities of [`@cyanheads/pubmed-mcp-server`](https://github.com/cyanheads/pubmed-mcp-server)
 into native DSH model tools: search, article metadata, full text, citation formatting, MeSH and ID
@@ -28,9 +28,9 @@ No MCP client configuration required.
 **1. One-command install (official CLI, recommended) · no source download needed**
 
 ```bash
-dsh plugin --profile web add github:aiyacharley/dsh-pubmed   # install from GitHub
+dsh plugin --profile web add dsh-pubmed@latest            # install from npm (published)
+# or from GitHub: dsh plugin --profile web add github:aiyacharley/dsh-pubmed
 # local source: dsh plugin --profile web add /path/to/dsh-pubmed
-# once published to npm: dsh plugin --profile web add dsh-pubmed@0.1.0
 ```
 
 Then **restart DSH** — `pubmed_*` tools appear in every session.
@@ -45,7 +45,7 @@ Paste either block below **as a whole** into a DSH session; the agent installs a
 ````text
 [Please persistently install the dsh-pubmed plugin (available in all sessions after restart)]
 1) Find the DSH profile name (e.g. web; ask if unsure).
-2) Run: dsh plugin --profile <name> add github:aiyacharley/dsh-pubmed
+2) Run: dsh plugin --profile <name> add dsh-pubmed@latest
 3) Tell the user to restart DSH.
 ````
 
