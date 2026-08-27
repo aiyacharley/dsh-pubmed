@@ -86,9 +86,31 @@ return {
 ```
 ````
 
-> 想重启后所有会话都自动可用？用下面的「方式二 / 方式三 / 方式四」持久化安装。
+> 想重启后所有会话都自动可用？用上面的「方式二」让 Agent 持久化安装，或下面的「方式三 / 方式四」手动持久化安装。
 
-### 方式二：作为 DSH profile bundle 安装（重启后全会话可用）
+### 方式二：复制粘贴给 Agent 自动安装（持久化 · 重启后全会话可用）
+
+把下面**整段**（含所有代码块标记）复制到任意 DSH web 会话发送，Agent 会直接修改 DSH profile 的
+配置文件并安装依赖；**重启 DSH 后**所有会话都能用：
+
+````text
+【请帮我持久化安装 dsh-pubmed（重启后所有会话可用）】
+
+1) 找到 DSH profile 目录（如 C:\Users\<用户名>\.dsh\profiles\web 或 ~/.dsh/profiles/<名称>；不确定就先问）。
+2) 编辑该 profile 目录的 package.json：在 dependencies 中加入
+   "dsh-pubmed": "github:aiyacharley/dsh-pubmed"
+3) 编辑该 profile 目录的 cordis.patch.yml：在顶层 YAML 数组追加（保留原有条目）：
+   - insert:
+       - id: pubmed
+         name: 'dsh-pubmed'
+4) 在该 profile 目录运行 npm install（拉取 GitHub 依赖；网络受限就告诉我）。
+5) 提示用户重启 DSH。重启后 pubmed_* 工具出现在所有会话。
+6) 不要重复：不要把 dsh-pubmed 再加进 dsh.profile.bundles，以免重复挂载。
+````
+
+> 需要 Agent 能读写 profile 目录（通常在用户主目录下、会话工作区之外，Agent 可能需要请求文件权限）。
+
+### 方式三：作为 DSH profile bundle 安装（重启后全会话可用）
 
 1. **从 GitHub 安装依赖** —— 在 DSH profile 目录（如 `~/.dsh/profiles/web`）的 `package.json`
    `dependencies` 中加入：
@@ -116,7 +138,7 @@ return {
 
 > 若发布到 npm，亦可一条命令安装：`dsh plugin --profile <name> add dsh-pubmed@0.1.0`。
 
-### 方式三：手动挂载（不装包，直接改 patch）
+### 方式四：手动挂载（不装包，直接改 patch）
 
 在 profile 的 `cordis.patch.yml`（用户 patch 层）中插入：
 
@@ -128,7 +150,7 @@ return {
 
 并把 `dsh-pubmed` 放入该 profile 可解析的 `node_modules`（或 flat `profiles/node_modules`）后重启。
 
-### 方式四：会话级动态插件（不重启，仅当前会话）
+### 方式五：会话级动态插件（不重启，仅当前会话）
 
 本仓库 `dsh-pubmed/lib/pubmed-core.js` 是传输无关的核心；在任意会话用 `cordis_define`
 定义如下包装器（`code.host`），即可在**当前进程内**立即可用：
@@ -175,7 +197,7 @@ return {
 }
 ```
 
-> 动态插件沙箱没有 `fetch`，故方式四用 curl 子进程做传输；bundle（方式二/三）直接用 Node `fetch`。
+> 动态插件沙箱没有 `fetch`，故方式五用 curl 子进程做传输；bundle 方式（二/三/四）直接用 Node `fetch`。
 
 ## 🧪 用法示例
 
