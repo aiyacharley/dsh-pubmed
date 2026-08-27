@@ -63,6 +63,23 @@ git clone https://github.com/aiyacharley/dsh-pubmed.git
 - **patch**：profile 的 `cordis.patch.yml` 追加上方 B 的 insert 行，确保 `dsh-pubmed` 可被 npm 解析 → 重启。
 - **会话级**：手动 `cordis_define` / `cordis_run`（包装器模板见 `lib/dynamic-wrapper.js`）。
 
+## 🗑️ 卸载
+
+- **会话级**（方式 A / 手动会话级）：对该插件执行 `cordis_undefine` 即可；或直接重启 DSH 进程——会话级插件本就不持久，重启即消失。
+- **持久化**（方式 B / bundle / patch）：撤销安装时的改动并重启。也可把下面**整段**贴给 Agent 自动卸载：
+
+````text
+【请帮我卸载 dsh-pubmed（重启后所有会话不再有 pubmed_* 工具）】
+1) 找到 DSH profile 目录（如 C:\Users\<用户名>\.dsh\profiles\web；不确定就先问）。
+2) 编辑 package.json：删除 dependencies 中的 "dsh-pubmed"；若 dsh.profile.bundles 里有 "dsh-pubmed" 一并删除。
+3) 编辑 cordis.patch.yml：删除 id 为 pubmed 的 insert 块（保留其他条目）。
+4) 在该目录运行 npm install（移除已安装的包）。
+5) 提示用户重启 DSH。
+````
+
+> 若本机还配了针对原版 pubmed-mcp-server 的 MCP 桥接（`cordis.patch.yml` 里的 `mcp-pubmed` 行），
+> 卸载需一并删除该行并重启。
+
 ## 🧪 用法示例
 
 ```
