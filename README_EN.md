@@ -109,7 +109,8 @@ No runtime configuration required. Optional environment variables (set in the pr
 | `NCBI_ADMIN_EMAIL` | Contact email recommended by NCBI |
 | `EUROPEPMC_ENABLED` | Toggle the Europe PMC tools |
 
-Without an API key the plugin paces requests at ~350 ms to avoid NCBI 429s.
+Without an API key the plugin serializes requests through a global ~350 ms queue
+(parallel calls included) to avoid NCBI 429s; set `NCBI_API_KEY` for 10 req/s.
 
 ## ✅ Requirements
 

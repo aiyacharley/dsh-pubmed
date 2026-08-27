@@ -109,7 +109,8 @@ bundle 运行时无需配置。可选环境变量（加入 profile 的 patch 行
 | `NCBI_ADMIN_EMAIL` | NCBI 建议的联系邮箱 |
 | `EUROPEPMC_ENABLED` | 控制 Europe PMC 相关工具 |
 
-无 API key 时插件内置 350ms 请求节奏，避免触发 NCBI 429。
+无 API key 时插件内置**全局 350ms 请求队列**（并行调用也会串行化），避免触发 NCBI 429；
+建议配置 `NCBI_API_KEY` 将限流提升至 10 req/s。
 
 ## ✅ 要求
 

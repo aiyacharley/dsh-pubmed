@@ -27,10 +27,24 @@ npm view dsh-pubmed
 
 ## 版本管理
 
+**所有 npm/git 命令都要在 `dsh-pubmed` 目录内执行**（在仓库根目录跑 `npm version` 会报
+`ENOENT package.json`）：
+
 ```bash
+cd <dsh-pubmed 仓库目录>
+
+# 1. 内容改动先提交
+git add -A && git commit -m "feat: 本次改动"
+
+# 2. 升版本（自动：改 version + 提交 + 打 annotated 标签）
 npm version patch   # 0.1.0 → 0.1.1
 npm version minor   # → 0.2.0
 npm version major   # → 1.0.0
+
+# 3. 推代码 + 标签
+git push --follow-tags
+
+# 4. 发布
 npm publish --registry=https://registry.npmjs.org
 # 预发布：npm publish --tag next
 ```
