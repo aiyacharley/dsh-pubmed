@@ -24,17 +24,31 @@
 
 ## 📦 安装
 
-**0. 获取源码**（方式 A 需要本机磁盘上有 `lib/pubmed-core.js`）：
+**1. 一条命令安装（官方 CLI，推荐）· 无需下载源码**
 
 ```bash
-git clone https://github.com/aiyacharley/dsh-pubmed.git
+dsh plugin --profile web add github:aiyacharley/dsh-pubmed   # 从 GitHub 安装
+# 本机有源码：dsh plugin --profile web add /path/to/dsh-pubmed
+# 发布到 npm 后：dsh plugin --profile web add dsh-pubmed@0.1.0
 ```
 
-**1. 推荐 · 复制粘贴给 Agent 自动安装**（需 `cordis` 预设的会话）
+装完**重启 DSH**，`pubmed_*` 出现在所有会话。
+卸载：`dsh plugin --profile web remove dsh-pubmed`。
 
-把下面任一段**整段**贴到任意 DSH web 会话，Agent 会自动完成安装并自测：
+**2. 复制粘贴给 Agent 自动安装**（需 `cordis` 预设的会话）
 
-- **A · 当前会话立即生效（无需重启）**：
+把下面任一段**整段**贴到 DSH 会话，Agent 自动完成安装并自测：
+
+- **持久化 · 重启后全会话可用**：
+
+````text
+【请帮我持久化安装 dsh-pubmed（重启后所有会话可用）】
+1) 找到 DSH profile 名称（如 web；不确定就先问）。
+2) 运行 dsh plugin --profile <名称> add github:aiyacharley/dsh-pubmed。
+3) 提示用户重启 DSH。
+````
+
+- **会话级 · 当前会话立即生效（需本机有源码）**：
 
 ````text
 【请帮我安装 dsh-pubmed 插件（PubMed 检索，11 个工具）】
@@ -44,36 +58,15 @@ git clone https://github.com/aiyacharley/dsh-pubmed.git
 4) 验证：pubmed_spell_check({query:"microbiom"}) 应返回 corrected="microbiome"；失败用 cordis_inspect_self 修复。
 ````
 
-- **B · 持久化（重启后全会话可用）**：
+**3. 手动安装（可选）**
 
-````text
-【请帮我持久化安装 dsh-pubmed（重启后所有会话可用）】
-1) 找到 DSH profile 名称（如 web；不确定就先问）。
-2) 用 DSH 官方 CLI 安装：
-   本机有源码：dsh plugin --profile <名称> add <dsh-pubmed 绝对路径>
-   从 GitHub：  dsh plugin --profile <名称> add github:aiyacharley/dsh-pubmed
-3) 提示用户重启 DSH。
-````
-
-**2. 一条命令安装 / 手动安装**
-
-- **一条命令（官方 CLI，推荐）**：
-
-  ```bash
-  dsh plugin --profile web add /path/to/dsh-pubmed            # 本地路径
-  dsh plugin --profile web add github:aiyacharley/dsh-pubmed  # 从 GitHub
-  # 发布到 npm 后：dsh plugin --profile web add dsh-pubmed@0.1.0
-  ```
-
-  然后重启 DSH。
-- **手动（等价）**：profile 的 `package.json` 加 `"dsh-pubmed"` 依赖 + `dsh.profile.bundles` 加 `"dsh-pubmed"` → `npm install` → 重启。
-- **patch**：profile 的 `cordis.patch.yml` 追加上方 B 的 insert 行，确保 `dsh-pubmed` 可被解析 → 重启。
+- **patch**：profile 的 `cordis.patch.yml` 追加 `- insert: [{ id: pubmed, name: 'dsh-pubmed' }]`，确保可解析 → 重启。
 - **会话级**：手动 `cordis_define` / `cordis_run`（模板见 `lib/dynamic-wrapper.js`）。
 
 ## 🗑️ 卸载
 
-- **会话级**（方式 A / 手动会话级）：对该插件执行 `cordis_undefine` 即可；或直接重启 DSH 进程——会话级插件本就不持久，重启即消失。
-- **持久化**（方式 B / bundle / patch）：一条命令 `dsh plugin --profile <名称> remove dsh-pubmed` 后重启；或撤销安装时的改动并重启。也可把下面**整段**贴给 Agent 自动卸载：
+- **会话级**：对该插件执行 `cordis_undefine` 即可；或直接重启 DSH 进程——会话级插件本就不持久，重启即消失。
+- **持久化**（一条命令 / bundle / patch）：`dsh plugin --profile <名称> remove dsh-pubmed` 后重启；或撤销安装时的改动并重启。也可把下面**整段**贴给 Agent 自动卸载：
 
 ````text
 【请帮我卸载 dsh-pubmed（重启后所有会话不再有 pubmed_* 工具）】
