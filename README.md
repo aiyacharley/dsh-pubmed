@@ -24,6 +24,16 @@
 
 ## 📦 安装
 
+**前置：先获取 dsh-pubmed 源码**（方式一 / 方式五 需要本机磁盘上有 `lib/pubmed-core.js`）：
+
+```bash
+git clone https://github.com/aiyacharley/dsh-pubmed.git
+cd dsh-pubmed
+```
+
+> 若用 GitHub 依赖安装（方式二 / 方式三），`npm install` 会自动拉取，可跳过手动 clone；
+> 但建议先 clone 一份，便于查看源码与后续使用方式一 / 方式五。
+
 ### 方式一：复制粘贴给 Agent 自动安装（推荐 · 当前会话立即生效）
 
 把下面**整段**（含所有代码块标记）复制到任意 DSH web 会话发送，Agent 会自动定位 `dsh-pubmed`、
@@ -35,7 +45,7 @@
 ````text
 【请帮我安装 dsh-pubmed 插件（PubMed 检索，11 个工具）】
 
-1) 先定位 dsh-pubmed 包目录：即包含 lib/pubmed-core.js 的目录。若你不知道路径，先问我，或在我的工作区 / 用户目录下搜索 "pubmed-core.js"。
+1) 先定位 dsh-pubmed 包目录：即包含 lib/pubmed-core.js 的目录。若本机还没有这个包，先执行 git clone https://github.com/aiyacharley/dsh-pubmed.git；若仍找不到路径，先问我，或在我的工作区 / 用户目录下搜索 "pubmed-core.js"。
 2) 用 cordis_define 新建动态插件（idPrefix 随意，如 pmbd），code.host 用下面的包装器，并把两处占位符替换为实际路径：
    - <DSH_PUBMED_CORE_PATH> → lib/pubmed-core.js 的绝对路径（Windows 用正斜杠）
    - <DSH_PUBMED_DIR> → dsh-pubmed 包目录（作为 curl 子进程的工作目录，任意存在目录即可）
