@@ -18,6 +18,15 @@
     "README.md",
     "LICENSE"
   ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aiyacharley/dsh-pubmed.git"
+  },
+  "homepage": "https://github.com/aiyacharley/dsh-pubmed#readme",
+  "bugs": {
+    "url": "https://github.com/aiyacharley/dsh-pubmed/issues"
+  },
+  "author": "aiyacharley",
   "engines": {
     "node": ">=20"
   },
