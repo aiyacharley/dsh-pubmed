@@ -3,6 +3,7 @@
 **简体中文** | [English](README_EN.md)
 
 [![npm version](https://img.shields.io/npm/v/dsh-pubmed)](https://www.npmjs.com/package/dsh-pubmed)
+[![Listed on dsh-plugin.org](https://dsh-plugin.org/badges/listed.svg)](https://dsh-plugin.org/plugins/aiyacharley/dsh-pubmed)
 
 **PubMed / Europe PMC 文献检索插件 for DeepSeek Harness (DSH)**
 
