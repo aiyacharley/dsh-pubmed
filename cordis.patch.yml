@@ -1,0 +1,21 @@
+# dsh-pubmed bundle patch — mounts the pubmed plugin row.
+#
+# This file is the `dsh.bundle.patch` layer of the published package: when the
+# plugin is installed through the official CLI —
+#
+#   dsh plugin --profile <name> add dsh-pubmed@0.1.0
+#
+# — the command reconciles `dsh.profile.bundles` against installed packages
+# and, seeing this declaration, appends `dsh-pubmed` to the bundle stack.
+# The profile boot then merges THIS patch (a single `insert` of the plugin
+# row) exactly like a manual cordis.patch.yml mount line.
+#
+# The row registers 11 model tools (pubmed_search_articles, pubmed_fetch_articles,
+# pubmed_fetch_fulltext, pubmed_format_citations, pubmed_find_related,
+# pubmed_lookup_mesh, pubmed_lookup_citation, pubmed_convert_ids,
+# pubmed_spell_check, pubmed_europepmc_search, pubmed_europepmc_fetch) on the
+# host `tools` registry, so they are callable in every session that mounts the
+# bundle.
+- insert:
+    - id: pubmed
+      name: 'dsh-pubmed'

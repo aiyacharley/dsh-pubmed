@@ -1,0 +1,47 @@
+{
+  "name": "dsh-pubmed",
+  "version": "0.1.0",
+  "description": "DSH plugin: PubMed / Europe PMC search, article metadata, full text, citations, MeSH and ID conversion for the DeepSeek Harness. Ports the capabilities of @cyanheads/pubmed-mcp-server into native DSH model tools.",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": {
+      "default": "./lib/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/index.js",
+    "lib/pubmed-core.js",
+    "cordis.patch.yml",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "dependencies": {
+    "@deepseek-ai/dsh-tools": ">=0.1.0"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "^4.0.1"
+  },
+  "keywords": [
+    "dsh",
+    "deepseek-harness",
+    "plugin",
+    "pubmed",
+    "ncbi",
+    "biomedical",
+    "europepmc",
+    "mesh",
+    "citations",
+    "literature-search"
+  ],
+  "license": "Apache-2.0"
+}
