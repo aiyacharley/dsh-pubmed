@@ -16,6 +16,7 @@
     "lib/dynamic-wrapper.js",
     "cordis.patch.yml",
     "README.md",
+    "README_EN.md",
     "LICENSE"
   ],
   "repository": {

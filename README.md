@@ -1,5 +1,7 @@
 # dsh-pubmed
 
+**简体中文** | [English](README_EN.md)
+
 **PubMed / Europe PMC 文献检索插件 for DeepSeek Harness (DSH) · v0.1.0**
 
 把 [`@cyanheads/pubmed-mcp-server`](https://github.com/cyanheads/pubmed-mcp-server) 的核心能力
