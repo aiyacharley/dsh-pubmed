@@ -24,7 +24,71 @@
 
 ## 📦 安装
 
-### 方式一：作为 DSH profile bundle 安装（推荐，重启后全会话可用）
+### 方式一：复制粘贴给 Agent 自动安装（推荐 · 当前会话立即生效）
+
+把下面**整段**（含所有代码块标记）复制到任意 DSH web 会话发送，Agent 会自动定位 `dsh-pubmed`、
+用 `cordis_define` 定义并激活插件、再自测。无需手动改配置、无需重启。
+
+> 需要会话具备 Cordis 动态插件工具（`cordis_define` / `cordis_run` / `cordis_inspect_self`，
+> 一般在 `cordis` agent 预设中可用）。
+
+````text
+【请帮我安装 dsh-pubmed 插件（PubMed 检索，11 个工具）】
+
+1) 先定位 dsh-pubmed 包目录：即包含 lib/pubmed-core.js 的目录。若你不知道路径，先问我，或在我的工作区 / 用户目录下搜索 "pubmed-core.js"。
+2) 用 cordis_define 新建动态插件（idPrefix 随意，如 pmbd），code.host 用下面的包装器，并把两处占位符替换为实际路径：
+   - <DSH_PUBMED_CORE_PATH> → lib/pubmed-core.js 的绝对路径（Windows 用正斜杠）
+   - <DSH_PUBMED_DIR> → dsh-pubmed 包目录（作为 curl 子进程的工作目录，任意存在目录即可）
+3) cordis_run 激活（mode=run）。
+4) 验证：调用 pubmed_spell_check({query:"microbiom"}) 应返回 corrected="microbiome"；再调用 pubmed_search_articles 确认搜索可用。若失败，用 cordis_inspect_self 读取诊断并修复后重试。
+
+包装器（code.host）：
+```js
+return {
+  name: 'pubmed-dsh',
+  inject: ['timer'],
+  async apply(ctx) {
+    const fs = ctx.get('fs')
+    if (fs === undefined) throw new Error('fs service unavailable')
+    const target = await fs.resolve('<DSH_PUBMED_CORE_PATH>')
+    const source = await fs.readText(target)
+    const factory = new Function(source + '\n; return registerPubmedTools')
+    const registerPubmedTools = factory()
+    const sub = ctx.get('subprocess')
+    const curlGet = async (url, signal, timeoutMs) => {
+      if (sub === undefined) throw new Error('subprocess service unavailable')
+      const sec = Math.max(5, Math.ceil((timeoutMs || 45000) / 1000))
+      const h = sub.spawn({
+        argv: ['curl', '-sS', '-L', '--compressed', '-m', String(sec), '-A', 'Mozilla/5.0 (compatible; dsh-pubmed/1.0)', '-w', '\n__DSH_STATUS__%{http_code}', url],
+        cwd: '<DSH_PUBMED_DIR>',
+        stdio: { stdin: 'ignore', stdout: { maxBytes: 16 * 1024 * 1024 }, stderr: { maxBytes: 262144 } },
+        graceMs: 5000,
+        signal,
+      })
+      const out = await h.done
+      const stdout = (h.collected.stdout ? h.collected.stdout.readFrom(0).text : '') || ''
+      const stderr = (h.collected.stderr ? h.collected.stderr.readFrom(0).text : '') || ''
+      if (out.exitCode !== 0) throw new Error('curl failed (exit ' + out.exitCode + '): ' + stderr.trim().slice(0, 300))
+      const m = /\n__DSH_STATUS__(\d+)\s*$/.exec(stdout)
+      const status = m ? parseInt(m[1], 10) : 0
+      const body = m ? stdout.slice(0, m.index) : stdout
+      if (status >= 400) throw new Error('HTTP ' + status + ' from ' + String(url).split('?')[0] + ': ' + body.slice(0, 400))
+      return { status, body }
+    }
+    registerPubmedTools(ctx, {
+      defineTool: harness.defineTool,
+      register: (def) => harness.registerTool(ctx, def),
+      httpGet: curlGet,
+      sleep: (ms) => ctx.timeout(ms),
+    })
+  },
+}
+```
+````
+
+> 想重启后所有会话都自动可用？用下面的「方式二 / 方式三 / 方式四」持久化安装。
+
+### 方式二：作为 DSH profile bundle 安装（重启后全会话可用）
 
 1. **从 GitHub 安装依赖** —— 在 DSH profile 目录（如 `~/.dsh/profiles/web`）的 `package.json`
    `dependencies` 中加入：
@@ -52,7 +116,7 @@
 
 > 若发布到 npm，亦可一条命令安装：`dsh plugin --profile <name> add dsh-pubmed@0.1.0`。
 
-### 方式二：手动挂载（不装包，直接改 patch）
+### 方式三：手动挂载（不装包，直接改 patch）
 
 在 profile 的 `cordis.patch.yml`（用户 patch 层）中插入：
 
@@ -64,7 +128,7 @@
 
 并把 `dsh-pubmed` 放入该 profile 可解析的 `node_modules`（或 flat `profiles/node_modules`）后重启。
 
-### 方式三：会话级动态插件（不重启，仅当前会话）
+### 方式四：会话级动态插件（不重启，仅当前会话）
 
 本仓库 `dsh-pubmed/lib/pubmed-core.js` 是传输无关的核心；在任意会话用 `cordis_define`
 定义如下包装器（`code.host`），即可在**当前进程内**立即可用：
@@ -111,7 +175,7 @@ return {
 }
 ```
 
-> 动态插件沙箱没有 `fetch`，故方式三用 curl 子进程做传输；bundle（方式一/二）直接用 Node `fetch`。
+> 动态插件沙箱没有 `fetch`，故方式四用 curl 子进程做传输；bundle（方式二/三）直接用 Node `fetch`。
 
 ## 🧪 用法示例
 
