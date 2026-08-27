@@ -24,190 +24,44 @@
 
 ## 📦 安装
 
-**前置：先获取 dsh-pubmed 源码**（方式一 / 方式五 需要本机磁盘上有 `lib/pubmed-core.js`）：
+**0. 获取源码**（方式 A 需要本机磁盘上有 `lib/pubmed-core.js`）：
 
 ```bash
 git clone https://github.com/aiyacharley/dsh-pubmed.git
-cd dsh-pubmed
 ```
 
-> 若用 GitHub 依赖安装（方式二 / 方式三），`npm install` 会自动拉取，可跳过手动 clone；
-> 但建议先 clone 一份，便于查看源码与后续使用方式一 / 方式五。
+**1. 推荐 · 复制粘贴给 Agent 自动安装**（需 `cordis` 预设的会话）
 
-### 方式一：复制粘贴给 Agent 自动安装（推荐 · 当前会话立即生效）
+把下面任一段**整段**贴到任意 DSH web 会话，Agent 会自动完成安装并自测：
 
-把下面**整段**（含所有代码块标记）复制到任意 DSH web 会话发送，Agent 会自动定位 `dsh-pubmed`、
-用 `cordis_define` 定义并激活插件、再自测。无需手动改配置、无需重启。
-
-> 需要会话具备 Cordis 动态插件工具（`cordis_define` / `cordis_run` / `cordis_inspect_self`，
-> 一般在 `cordis` agent 预设中可用）。
+- **A · 当前会话立即生效（无需重启）**：
 
 ````text
 【请帮我安装 dsh-pubmed 插件（PubMed 检索，11 个工具）】
-
-1) 先定位 dsh-pubmed 包目录：即包含 lib/pubmed-core.js 的目录。若本机还没有这个包，先执行 git clone https://github.com/aiyacharley/dsh-pubmed.git；若仍找不到路径，先问我，或在我的工作区 / 用户目录下搜索 "pubmed-core.js"。
-2) 用 cordis_define 新建动态插件（idPrefix 随意，如 pmbd），code.host 用下面的包装器，并把两处占位符替换为实际路径：
-   - <DSH_PUBMED_CORE_PATH> → lib/pubmed-core.js 的绝对路径（Windows 用正斜杠）
-   - <DSH_PUBMED_DIR> → dsh-pubmed 包目录（作为 curl 子进程的工作目录，任意存在目录即可）
+1) 先定位 dsh-pubmed 包目录（含 lib/pubmed-core.js）。若本机还没有，先 git clone https://github.com/aiyacharley/dsh-pubmed.git；找不到就问我。
+2) 读取该目录 lib/dynamic-wrapper.js 作为 cordis_define 的 code.host，并把 <DSH_PUBMED_CORE_PATH> 替换为 lib/pubmed-core.js 的绝对路径、<DSH_PUBMED_DIR> 替换为 dsh-pubmed 包目录。
 3) cordis_run 激活（mode=run）。
-4) 验证：调用 pubmed_spell_check({query:"microbiom"}) 应返回 corrected="microbiome"；再调用 pubmed_search_articles 确认搜索可用。若失败，用 cordis_inspect_self 读取诊断并修复后重试。
-
-包装器（code.host）：
-```js
-return {
-  name: 'pubmed-dsh',
-  inject: ['timer'],
-  async apply(ctx) {
-    const fs = ctx.get('fs')
-    if (fs === undefined) throw new Error('fs service unavailable')
-    const target = await fs.resolve('<DSH_PUBMED_CORE_PATH>')
-    const source = await fs.readText(target)
-    const factory = new Function(source + '\n; return registerPubmedTools')
-    const registerPubmedTools = factory()
-    const sub = ctx.get('subprocess')
-    const curlGet = async (url, signal, timeoutMs) => {
-      if (sub === undefined) throw new Error('subprocess service unavailable')
-      const sec = Math.max(5, Math.ceil((timeoutMs || 45000) / 1000))
-      const h = sub.spawn({
-        argv: ['curl', '-sS', '-L', '--compressed', '-m', String(sec), '-A', 'Mozilla/5.0 (compatible; dsh-pubmed/1.0)', '-w', '\n__DSH_STATUS__%{http_code}', url],
-        cwd: '<DSH_PUBMED_DIR>',
-        stdio: { stdin: 'ignore', stdout: { maxBytes: 16 * 1024 * 1024 }, stderr: { maxBytes: 262144 } },
-        graceMs: 5000,
-        signal,
-      })
-      const out = await h.done
-      const stdout = (h.collected.stdout ? h.collected.stdout.readFrom(0).text : '') || ''
-      const stderr = (h.collected.stderr ? h.collected.stderr.readFrom(0).text : '') || ''
-      if (out.exitCode !== 0) throw new Error('curl failed (exit ' + out.exitCode + '): ' + stderr.trim().slice(0, 300))
-      const m = /\n__DSH_STATUS__(\d+)\s*$/.exec(stdout)
-      const status = m ? parseInt(m[1], 10) : 0
-      const body = m ? stdout.slice(0, m.index) : stdout
-      if (status >= 400) throw new Error('HTTP ' + status + ' from ' + String(url).split('?')[0] + ': ' + body.slice(0, 400))
-      return { status, body }
-    }
-    registerPubmedTools(ctx, {
-      defineTool: harness.defineTool,
-      register: (def) => harness.registerTool(ctx, def),
-      httpGet: curlGet,
-      sleep: (ms) => ctx.timeout(ms),
-    })
-  },
-}
-```
+4) 验证：pubmed_spell_check({query:"microbiom"}) 应返回 corrected="microbiome"；失败用 cordis_inspect_self 修复。
 ````
 
-> 想重启后所有会话都自动可用？用上面的「方式二」让 Agent 持久化安装，或下面的「方式三 / 方式四」手动持久化安装。
-
-### 方式二：复制粘贴给 Agent 自动安装（持久化 · 重启后全会话可用）
-
-把下面**整段**（含所有代码块标记）复制到任意 DSH web 会话发送，Agent 会直接修改 DSH profile 的
-配置文件并安装依赖；**重启 DSH 后**所有会话都能用：
+- **B · 持久化（重启后全会话可用）**：
 
 ````text
 【请帮我持久化安装 dsh-pubmed（重启后所有会话可用）】
-
-1) 找到 DSH profile 目录（如 C:\Users\<用户名>\.dsh\profiles\web 或 ~/.dsh/profiles/<名称>；不确定就先问）。
-2) 编辑该 profile 目录的 package.json：在 dependencies 中加入
-   "dsh-pubmed": "github:aiyacharley/dsh-pubmed"
-3) 编辑该 profile 目录的 cordis.patch.yml：在顶层 YAML 数组追加（保留原有条目）：
+1) 找到 DSH profile 目录（如 C:\Users\<用户名>\.dsh\profiles\web；不确定就先问）。
+2) 编辑该目录 package.json：dependencies 加入 "dsh-pubmed": "github:aiyacharley/dsh-pubmed"。
+3) 编辑该目录 cordis.patch.yml：顶层 YAML 数组追加（保留原有条目）：
    - insert:
        - id: pubmed
          name: 'dsh-pubmed'
-4) 在该 profile 目录运行 npm install（拉取 GitHub 依赖；网络受限就告诉我）。
-5) 提示用户重启 DSH。重启后 pubmed_* 工具出现在所有会话。
-6) 不要重复：不要把 dsh-pubmed 再加进 dsh.profile.bundles，以免重复挂载。
+4) 在该目录运行 npm install，然后提示用户重启 DSH。
 ````
 
-> 需要 Agent 能读写 profile 目录（通常在用户主目录下、会话工作区之外，Agent 可能需要请求文件权限）。
+**2. 手动安装（可选）**
 
-### 方式三：作为 DSH profile bundle 安装（重启后全会话可用）
-
-1. **从 GitHub 安装依赖** —— 在 DSH profile 目录（如 `~/.dsh/profiles/web`）的 `package.json`
-   `dependencies` 中加入：
-
-   ```jsonc
-   "dependencies": {
-     "dsh-pubmed": "github:aiyacharley/dsh-pubmed"
-   }
-   ```
-
-2. **把 `dsh-pubmed` 加进 bundle 栈** —— 同目录 `package.json` 的 `dsh.profile.bundles` 数组：
-
-   ```jsonc
-   "dsh": { "profile": { "bundles": [ /* ...已有 bundle... */, "dsh-pubmed" ] } }
-   ```
-
-3. **安装依赖并重启 DSH**：
-
-   ```bash
-   cd ~/.dsh/profiles/web && npm install
-   # 重启 DSH web 应用
-   ```
-
-   启动后，11 个工具以 `pubmed_*` 命名出现在**所有会话**中。
-
-> 若发布到 npm，亦可一条命令安装：`dsh plugin --profile <name> add dsh-pubmed@0.1.0`。
-
-### 方式四：手动挂载（不装包，直接改 patch）
-
-在 profile 的 `cordis.patch.yml`（用户 patch 层）中插入：
-
-```yaml
-- insert:
-    - id: pubmed
-      name: 'dsh-pubmed'
-```
-
-并把 `dsh-pubmed` 放入该 profile 可解析的 `node_modules`（或 flat `profiles/node_modules`）后重启。
-
-### 方式五：会话级动态插件（不重启，仅当前会话）
-
-本仓库 `dsh-pubmed/lib/pubmed-core.js` 是传输无关的核心；在任意会话用 `cordis_define`
-定义如下包装器（`code.host`），即可在**当前进程内**立即可用：
-
-```js
-return {
-  name: 'pubmed-dsh',
-  inject: ['timer'],
-  async apply(ctx) {
-    const fs = ctx.get('fs')
-    if (fs === undefined) throw new Error('fs service unavailable')
-    const target = await fs.resolve('<绝对路径>/dsh-pubmed/lib/pubmed-core.js')
-    const source = await fs.readText(target)
-    const factory = new Function(source + '\n; return registerPubmedTools')
-    const registerPubmedTools = factory()
-    const sub = ctx.get('subprocess')
-    const curlGet = async (url, signal, timeoutMs) => {
-      if (sub === undefined) throw new Error('subprocess service unavailable')
-      const sec = Math.max(5, Math.ceil((timeoutMs || 45000) / 1000))
-      const h = sub.spawn({
-        argv: ['curl', '-sS', '-L', '--compressed', '-m', String(sec), '-A', 'Mozilla/5.0 (compatible; dsh-pubmed/1.0)', '-w', '\n__DSH_STATUS__%{http_code}', url],
-        cwd: '<任意存在的目录>',
-        stdio: { stdin: 'ignore', stdout: { maxBytes: 16 * 1024 * 1024 }, stderr: { maxBytes: 262144 } },
-        graceMs: 5000,
-        signal,
-      })
-      const out = await h.done
-      const stdout = (h.collected.stdout ? h.collected.stdout.readFrom(0).text : '') || ''
-      const stderr = (h.collected.stderr ? h.collected.stderr.readFrom(0).text : '') || ''
-      if (out.exitCode !== 0) throw new Error('curl failed (exit ' + out.exitCode + '): ' + stderr.trim().slice(0, 300))
-      const m = /\n__DSH_STATUS__(\d+)\s*$/.exec(stdout)
-      const status = m ? parseInt(m[1], 10) : 0
-      const body = m ? stdout.slice(0, m.index) : stdout
-      if (status >= 400) throw new Error('HTTP ' + status + ' from ' + String(url).split('?')[0] + ': ' + body.slice(0, 400))
-      return { status, body }
-    }
-    registerPubmedTools(ctx, {
-      defineTool: harness.defineTool,
-      register: (def) => harness.registerTool(ctx, def),
-      httpGet: curlGet,
-      sleep: (ms) => ctx.timeout(ms),
-    })
-  },
-}
-```
-
-> 动态插件沙箱没有 `fetch`，故方式五用 curl 子进程做传输；bundle 方式（二/三/四）直接用 Node `fetch`。
+- **bundle**：profile 的 `package.json` 加 `"dsh-pubmed": "github:aiyacharley/dsh-pubmed"` 依赖，并在 `dsh.profile.bundles` 加 `"dsh-pubmed"` → `npm install` → 重启。
+- **patch**：profile 的 `cordis.patch.yml` 追加上方 B 的 insert 行，确保 `dsh-pubmed` 可被 npm 解析 → 重启。
+- **会话级**：手动 `cordis_define` / `cordis_run`（包装器模板见 `lib/dynamic-wrapper.js`）。
 
 ## 🧪 用法示例
 
