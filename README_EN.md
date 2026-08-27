@@ -1,6 +1,8 @@
 # dsh-pubmed
 
-**PubMed / Europe PMC literature search plugin for DeepSeek Harness (DSH) · v0.1.0**
+[![npm version](https://img.shields.io/npm/v/dsh-pubmed)](https://www.npmjs.com/package/dsh-pubmed)
+
+**PubMed / Europe PMC literature search plugin for DeepSeek Harness (DSH)**
 
 Ports the core capabilities of [`@cyanheads/pubmed-mcp-server`](https://github.com/cyanheads/pubmed-mcp-server)
 into native DSH model tools: search, article metadata, full text, citation formatting, MeSH and ID

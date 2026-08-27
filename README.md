@@ -2,7 +2,9 @@
 
 **简体中文** | [English](README_EN.md)
 
-**PubMed / Europe PMC 文献检索插件 for DeepSeek Harness (DSH) · v0.1.0**
+[![npm version](https://img.shields.io/npm/v/dsh-pubmed)](https://www.npmjs.com/package/dsh-pubmed)
+
+**PubMed / Europe PMC 文献检索插件 for DeepSeek Harness (DSH)**
 
 把 [`@cyanheads/pubmed-mcp-server`](https://github.com/cyanheads/pubmed-mcp-server) 的核心能力
 移植成 DSH 原生模型工具：搜索、文章元数据、全文、引用格式化、MeSH、ID 转换等 11 个工具，
