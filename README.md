@@ -48,33 +48,39 @@ git clone https://github.com/aiyacharley/dsh-pubmed.git
 
 ````text
 【请帮我持久化安装 dsh-pubmed（重启后所有会话可用）】
-1) 找到 DSH profile 目录（如 C:\Users\<用户名>\.dsh\profiles\web；不确定就先问）。
-2) 编辑该目录 package.json：dependencies 加入 "dsh-pubmed": "github:aiyacharley/dsh-pubmed"。
-3) 编辑该目录 cordis.patch.yml：顶层 YAML 数组追加（保留原有条目）：
-   - insert:
-       - id: pubmed
-         name: 'dsh-pubmed'
-4) 在该目录运行 npm install，然后提示用户重启 DSH。
+1) 找到 DSH profile 名称（如 web；不确定就先问）。
+2) 用 DSH 官方 CLI 安装：
+   本机有源码：dsh plugin --profile <名称> add <dsh-pubmed 绝对路径>
+   从 GitHub：  dsh plugin --profile <名称> add github:aiyacharley/dsh-pubmed
+3) 提示用户重启 DSH。
 ````
 
-**2. 手动安装（可选）**
+**2. 一条命令安装 / 手动安装**
 
-- **bundle**：profile 的 `package.json` 加 `"dsh-pubmed": "github:aiyacharley/dsh-pubmed"` 依赖，并在 `dsh.profile.bundles` 加 `"dsh-pubmed"` → `npm install` → 重启。
-- **patch**：profile 的 `cordis.patch.yml` 追加上方 B 的 insert 行，确保 `dsh-pubmed` 可被 npm 解析 → 重启。
-- **会话级**：手动 `cordis_define` / `cordis_run`（包装器模板见 `lib/dynamic-wrapper.js`）。
+- **一条命令（官方 CLI，推荐）**：
+
+  ```bash
+  dsh plugin --profile web add /path/to/dsh-pubmed            # 本地路径
+  dsh plugin --profile web add github:aiyacharley/dsh-pubmed  # 从 GitHub
+  # 发布到 npm 后：dsh plugin --profile web add dsh-pubmed@0.1.0
+  ```
+
+  然后重启 DSH。
+- **手动（等价）**：profile 的 `package.json` 加 `"dsh-pubmed"` 依赖 + `dsh.profile.bundles` 加 `"dsh-pubmed"` → `npm install` → 重启。
+- **patch**：profile 的 `cordis.patch.yml` 追加上方 B 的 insert 行，确保 `dsh-pubmed` 可被解析 → 重启。
+- **会话级**：手动 `cordis_define` / `cordis_run`（模板见 `lib/dynamic-wrapper.js`）。
 
 ## 🗑️ 卸载
 
 - **会话级**（方式 A / 手动会话级）：对该插件执行 `cordis_undefine` 即可；或直接重启 DSH 进程——会话级插件本就不持久，重启即消失。
-- **持久化**（方式 B / bundle / patch）：撤销安装时的改动并重启。也可把下面**整段**贴给 Agent 自动卸载：
+- **持久化**（方式 B / bundle / patch）：一条命令 `dsh plugin --profile <名称> remove dsh-pubmed` 后重启；或撤销安装时的改动并重启。也可把下面**整段**贴给 Agent 自动卸载：
 
 ````text
 【请帮我卸载 dsh-pubmed（重启后所有会话不再有 pubmed_* 工具）】
-1) 找到 DSH profile 目录（如 C:\Users\<用户名>\.dsh\profiles\web；不确定就先问）。
-2) 编辑 package.json：删除 dependencies 中的 "dsh-pubmed"；若 dsh.profile.bundles 里有 "dsh-pubmed" 一并删除。
-3) 编辑 cordis.patch.yml：删除 id 为 pubmed 的 insert 块（保留其他条目）。
-4) 在该目录运行 npm install（移除已安装的包）。
-5) 提示用户重启 DSH。
+1) 找到 DSH profile 名称（如 web；不确定就先问）。
+2) 运行 dsh plugin --profile <名称> remove dsh-pubmed。
+   若该命令不可用，则手动：从 package.json 删除 "dsh-pubmed" 依赖（及 bundles 里的条目），从 cordis.patch.yml 删除 id 为 pubmed 的 insert 块，再 npm install。
+3) 提示用户重启 DSH。
 ````
 
 > 若本机还配了针对原版 pubmed-mcp-server 的 MCP 桥接（`cordis.patch.yml` 里的 `mcp-pubmed` 行），
