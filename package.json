@@ -13,6 +13,7 @@
   "files": [
     "lib/index.js",
     "lib/pubmed-core.js",
+    "lib/nlp.js",
     "lib/dynamic-wrapper.js",
     "cordis.patch.yml",
     "README.md",
