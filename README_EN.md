@@ -122,6 +122,7 @@ No runtime configuration required. Optional environment variables (set in the pr
 | `NCBI_API_KEY` | Higher NCBI rate limit (10 req/s instead of 3 req/s) |
 | `NCBI_ADMIN_EMAIL` | Contact email recommended by NCBI |
 | `EUROPEPMC_ENABLED` | Toggle the Europe PMC tools |
+| `AUTO_GRAPH` | Set to `1`: every `pubmed_fetch_articles` call auto-merges into the current session knowledge graph (no manual `graph_add` per round) |
 
 Without an API key the plugin serializes requests through a global ~350 ms queue
 (~2.8 req/s, under NCBI's 3 req/s); with `NCBI_API_KEY` it auto-accelerates to

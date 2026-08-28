@@ -124,6 +124,7 @@ bundle 运行时无需配置。可选环境变量（加入 profile 的 patch 行
 | `NCBI_API_KEY` | 提高 NCBI 限流（10 req/s 而非 3 req/s） |
 | `NCBI_ADMIN_EMAIL` | NCBI 建议的联系邮箱 |
 | `EUROPEPMC_ENABLED` | 控制 Europe PMC 相关工具 |
+| `AUTO_GRAPH` | 设为 `1`：每次 `pubmed_fetch_articles` 自动并入当前会话知识图谱（硬保证，无需每轮手动 `graph_add`） |
 
 无 API key 时插件内置**全局 ~350ms 请求队列**（≈2.8 req/s，低于 NCBI 3 req/s）；配置 `NCBI_API_KEY`
 后自动提速至 **~120ms（≈8 req/s，低于 10 req/s 上限）**。并行调用也会串行化，避免 429。
