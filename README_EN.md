@@ -124,7 +124,8 @@ No runtime configuration required. Optional environment variables (set in the pr
 | `EUROPEPMC_ENABLED` | Toggle the Europe PMC tools |
 
 Without an API key the plugin serializes requests through a global ~350 ms queue
-(parallel calls included) to avoid NCBI 429s; set `NCBI_API_KEY` for 10 req/s.
+(~2.8 req/s, under NCBI's 3 req/s); with `NCBI_API_KEY` it auto-accelerates to
+~120 ms (~8 req/s, under the 10 req/s cap). Parallel calls are serialized to avoid 429s.
 
 ## ✅ Requirements
 
