@@ -7,10 +7,10 @@
 
 Ports the core capabilities of [`@cyanheads/pubmed-mcp-server`](https://github.com/cyanheads/pubmed-mcp-server)
 into native DSH model tools: search, article metadata, full text, citation formatting, MeSH and ID
-conversion — 11 tools in total, talking directly to NCBI E-utilities and the Europe PMC REST API.
-No MCP client configuration required.
+conversion, plus a **personal literature knowledge graph** — 16 tools in total, talking directly to
+NCBI E-utilities and the Europe PMC REST API. No MCP client configuration required.
 
-## ✨ Features (11 tools)
+## ✨ Features (16 tools)
 
 | Tool | Description |
 |---|---|
@@ -25,6 +25,11 @@ No MCP client configuration required.
 | `pubmed_spell_check` | Query spelling correction (ESpell) |
 | `pubmed_europepmc_search` | Europe PMC search (MED/PMC/PPR/PAT/AGR, cursor paging) |
 | `pubmed_europepmc_fetch` | Complete Europe PMC record (untruncated abstract) |
+| `pubmed_extract_keywords` | Extract keywords from articles (MeSH + title/abstract frequency, deterministic, no LLM) |
+| `pubmed_graph_add` | **Incrementally** add one retrieval round into the current session knowledge graph (in-memory, per-session) |
+| `pubmed_graph_get` | Get the session / user graph (nodes + edges JSON, for visualization or the model) |
+| `pubmed_graph_commit` | **Explicitly** merge the session graph into your persistent personal user graph (not automatic) |
+| `pubmed_graph_reset` | Clear the session graph (or the user graph) |
 
 ## 📦 Installation
 
@@ -97,6 +102,14 @@ Resolve this DOI to a PMCID
 
 Fetch the full text of this article
 → pubmed_fetch_fulltext({ pmids: ['23193287'] })
+
+【Build my knowledge graph】
+Round 1: pubmed_fetch_articles({ pmids: [...] }) → pubmed_graph_add({ articles: [...] })   # merge into session graph
+Round 2: pubmed_fetch_articles({ pmids: [...] }) → pubmed_graph_add({ articles: [...] })   # incremental
+Inspect anytime: pubmed_graph_get({ scope: 'session' })        # session graph (not auto-saved to user graph)
+Add to my personal graph: pubmed_graph_commit({ confirm: true }) # explicit opt-in → persisted
+Inspect personal graph: pubmed_graph_get({ scope: 'user' })
+Clear: pubmed_graph_reset({ scope: 'session' })   # or scope: 'user'
 ```
 
 ## ⚙️ Configuration
