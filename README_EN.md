@@ -27,7 +27,7 @@ NCBI E-utilities and the Europe PMC REST API. No MCP client configuration requir
 | `pubmed_europepmc_fetch` | Complete Europe PMC record (untruncated abstract) |
 | `pubmed_extract_keywords` | Extract keywords from articles (MeSH weighted + NLP noun phrases/frequency, optional compromise NLP) |
 | `pubmed_graph_add` | **Incrementally** add one retrieval round into the current session knowledge graph (in-memory, per-session; includes directed "X regulates/promotes/inhibits Y" relation edges) |
-| `pubmed_graph_get` | Get the session / user graph (nodes + edges JSON, for visualization or the model) |
+| `pubmed_graph_get` | Get the session / user graph (`format:'json'` nodes+edges, or `format:'mermaid'` colored flowchart card, NPG palette) |
 | `pubmed_graph_commit` | **Explicitly** merge the session graph into your persistent personal user graph (not automatic) |
 | `pubmed_graph_reset` | Clear the session graph (or the user graph) |
 
@@ -109,6 +109,7 @@ Round 2: pubmed_fetch_articles({ pmids: [...] }) → pubmed_graph_add({ articles
 Inspect anytime: pubmed_graph_get({ scope: 'session' })        # session graph (not auto-saved to user graph)
 Add to my personal graph: pubmed_graph_commit({ confirm: true }) # explicit opt-in → persisted
 Inspect personal graph: pubmed_graph_get({ scope: 'user' })
+Visualize: pubmed_graph_get({ scope: 'session', format: 'mermaid', maxKeywords: 15 })  # returns mermaid code → wrap in a dsh-ui mermaid fence for a colored card
 Clear: pubmed_graph_reset({ scope: 'session' })   # or scope: 'user'
 ```
 

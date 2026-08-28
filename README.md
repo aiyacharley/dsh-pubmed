@@ -28,7 +28,7 @@
 | `pubmed_europepmc_fetch` | Europe PMC 单条完整记录（含未截断摘要） |
 | `pubmed_extract_keywords` | 提取关键词（MeSH 加权 + NLP 名词短语/词频，含可选 compromise NLP） |
 | `pubmed_graph_add` | 把一轮检索文章**增量并入当前会话知识图谱**（内存、按会话隔离；含 "X 调控/促进/抑制 Y" 有向关系边） |
-| `pubmed_graph_get` | 查询会话 / 用户知识图谱（节点+边 JSON，供可视化或模型用） |
+| `pubmed_graph_get` | 查询会话 / 用户知识图谱（`format:'json'` 节点+边，或 `format:'mermaid'` 彩色流程图卡片，NPG 配色） |
 | `pubmed_graph_commit` | **显式**把会话图谱并入持久化的个人用户图谱（默认不自动加入） |
 | `pubmed_graph_reset` | 清空会话图谱（或用户图谱） |
 | `pubmed_europepmc_search` | Europe PMC 检索（MED/PMC/PPR/PAT/AGR，游标分页） |
@@ -112,6 +112,7 @@ dsh plugin --profile web add dsh-pubmed@latest              # 从 npm 安装（�
 随时查看：pubmed_graph_get({ scope: 'session' })          # 会话图谱（默认不写入用户图谱）
 想并入个人图谱：pubmed_graph_commit({ confirm: true })    # 显式提交 → 持久化到用户图谱
 查看个人图谱：pubmed_graph_get({ scope: 'user' })
+可视化：pubmed_graph_get({ scope: 'session', format: 'mermaid', maxKeywords: 15 })  # 返回 mermaid 代码 → 包进 dsh-ui mermaid 围栏即得彩色卡片
 清空：pubmed_graph_reset({ scope: 'session' })  # 或 scope: 'user'
 ```
 
