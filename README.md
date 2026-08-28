@@ -117,6 +117,25 @@ dsh plugin --profile web add dsh-pubmed@latest              # 从 npm 安装（�
 清空：pubmed_graph_reset({ scope: 'session' })  # 或 scope: 'user'
 ```
 
+## 🧬 工作流
+
+```
+检索 → 取文章 → 自动建图（AUTO_GRAPH 默认开）→ 多轮增量累积 → 可视化 → 显式 commit 持久化
+```
+
+1. **检索**：`pubmed_search_articles`（NCBI）或 `pubmed_europepmc_search`（Europe PMC）。
+2. **取文章**：`pubmed_fetch_articles({pmids})` 拿结构化文章；**AUTO_GRAPH 默认开** → 自动并入会话图谱。
+3. **建图**（每篇双层，`PUBTATOR` 默认开）：
+   - **启发式层**（永远跑）：关键词节点（MeSH 加权 + NLP 名词短语）+ 启发式关系边（"X 调控 Y"）。
+   - **PubTator 层**：concept 节点（带权威 ID，如 `IgA[973]`，按 ID 跨文章去重）+ curated 关系边（treat/interact/...，weight=publications 证据）。
+   - **兜底**：PubTator 失败 → 静默降级为纯启发式层，不中断建图。
+4. **增量累积**：多轮检索 `pubmed_graph_add` 不断并入（内存、按会话隔离，跨主题自动汇聚）。
+5. **可视化**：`pubmed_graph_get({format:'mermaid'})` → NPG 配色卡片（红=文章 / 绿=关键词 / 深蓝=concept / 红箭头=关系）。
+6. **持久化**：`pubmed_graph_commit` 显式并入用户图谱（`~/.dsh/dsh-pubmed-graph.json`，跨会话保留）。
+7. **管理**：`pubmed_graph_get({scope:'user'})` 取回，`pubmed_graph_reset` 清空。
+
+> 数据源：NCBI E-utilities（检索/元数据/MeSH/ID转换/拼写/全文）、Europe PMC REST（检索/完整记录）、PubTator3（实体标注/概念ID/curated 关系）。
+
 ## ⚙️ 配置
 
 bundle 运行时无需配置即可使用。可选配置项（**推荐写进 profile 的 patch 行 `config`**，比环境变量更稳，

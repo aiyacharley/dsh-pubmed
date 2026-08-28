@@ -116,6 +116,26 @@ Visualize: pubmed_graph_get({ scope: 'session', format: 'mermaid', maxKeywords: 
 Clear: pubmed_graph_reset({ scope: 'session' })   # or scope: 'user'
 ```
 
+## 🧬 Workflow
+
+```
+search → fetch articles → auto-graph (AUTO_GRAPH on by default) → incremental multi-round
+→ visualize → explicit commit for persistence
+```
+
+1. **Search**: `pubmed_search_articles` (NCBI) or `pubmed_europepmc_search` (Europe PMC).
+2. **Fetch**: `pubmed_fetch_articles({pmids})` for structured articles; **AUTO_GRAPH is ON by default** → auto-merges into the session graph.
+3. **Build** (two layers per article, `PUBTATOR` on by default):
+   - **Heuristic layer** (always runs): keyword nodes (MeSH weighted + NLP noun phrases) + heuristic relation edges ("X regulates Y").
+   - **PubTator layer**: concept nodes with authoritative IDs (e.g. `IgA[973]`, deduplicated by ID across articles) + curated relation edges (treat/interact/..., weight = publication-count evidence).
+   - **Fallback**: if PubTator fails, it silently degrades to the heuristic layer — graph building never breaks.
+4. **Incremental accumulation**: more retrieval rounds via `pubmed_graph_add` keep merging (in-memory, per-session; shared concepts/keywords across topics converge automatically).
+5. **Visualize**: `pubmed_graph_get({format:'mermaid'})` → NPG-palette card (red=articles / green=keywords / deep-blue=concepts / red arrows=relations).
+6. **Persist**: `pubmed_graph_commit` explicitly merges into your personal user graph (`~/.dsh/dsh-pubmed-graph.json`, persists across sessions).
+7. **Manage**: `pubmed_graph_get({scope:'user'})` to retrieve, `pubmed_graph_reset` to clear.
+
+> Data sources: NCBI E-utilities (search/metadata/MeSH/ID conversion/spell-check/full text), Europe PMC REST (search/full records), PubTator3 (entity annotations / concept IDs / curated relations).
+
 ## ⚙️ Configuration
 
 No runtime configuration is required. Optional settings (recommended via the profile patch row
