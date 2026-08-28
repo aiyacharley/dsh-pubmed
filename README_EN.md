@@ -25,8 +25,8 @@ NCBI E-utilities and the Europe PMC REST API. No MCP client configuration requir
 | `pubmed_spell_check` | Query spelling correction (ESpell) |
 | `pubmed_europepmc_search` | Europe PMC search (MED/PMC/PPR/PAT/AGR, cursor paging) |
 | `pubmed_europepmc_fetch` | Complete Europe PMC record (untruncated abstract) |
-| `pubmed_extract_keywords` | Extract keywords from articles (MeSH + title/abstract frequency, deterministic, no LLM) |
-| `pubmed_graph_add` | **Incrementally** add one retrieval round into the current session knowledge graph (in-memory, per-session) |
+| `pubmed_extract_keywords` | Extract keywords from articles (MeSH weighted + NLP noun phrases/frequency, optional compromise NLP) |
+| `pubmed_graph_add` | **Incrementally** add one retrieval round into the current session knowledge graph (in-memory, per-session; includes directed "X regulates/promotes/inhibits Y" relation edges) |
 | `pubmed_graph_get` | Get the session / user graph (nodes + edges JSON, for visualization or the model) |
 | `pubmed_graph_commit` | **Explicitly** merge the session graph into your persistent personal user graph (not automatic) |
 | `pubmed_graph_reset` | Clear the session graph (or the user graph) |

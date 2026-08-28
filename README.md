@@ -26,8 +26,8 @@
 | `pubmed_spell_check` | 检索词拼写纠正（ESpell） |
 | `pubmed_europepmc_search` | Europe PMC 检索（MED/PMC/PPR/PAT/AGR，游标分页） |
 | `pubmed_europepmc_fetch` | Europe PMC 单条完整记录（含未截断摘要） |
-| `pubmed_extract_keywords` | 从文章提取关键词（MeSH + 标题/摘要词频，确定性、无需 LLM） |
-| `pubmed_graph_add` | 把一轮检索文章**增量并入当前会话知识图谱**（内存、按会话隔离） |
+| `pubmed_extract_keywords` | 提取关键词（MeSH 加权 + NLP 名词短语/词频，含可选 compromise NLP） |
+| `pubmed_graph_add` | 把一轮检索文章**增量并入当前会话知识图谱**（内存、按会话隔离；含 "X 调控/促进/抑制 Y" 有向关系边） |
 | `pubmed_graph_get` | 查询会话 / 用户知识图谱（节点+边 JSON，供可视化或模型用） |
 | `pubmed_graph_commit` | **显式**把会话图谱并入持久化的个人用户图谱（默认不自动加入） |
 | `pubmed_graph_reset` | 清空会话图谱（或用户图谱） |
