@@ -117,14 +117,24 @@ dsh plugin --profile web add dsh-pubmed@latest              # 从 npm 安装（�
 
 ## ⚙️ 配置
 
-bundle 运行时无需配置。可选环境变量（加入 profile 的 patch 行 `config.env` 或进程环境）：
+bundle 运行时无需配置即可使用。可选配置项（**推荐写进 profile 的 patch 行 `config`**，比环境变量更稳，
+因为环境变量可能因 DSH 启动方式不同而读不到）：
 
-| 变量 | 作用 |
+```yaml
+# 你的 profile 文件，如 C:\Users\<你>\.dsh\profiles\<profile>\cordis.patch.yml
+# 注意：补丁条目是【裸对象 { id, config }】，不要用 `- override:` 包装。
+- id: pubmed
+  config:
+    NCBI_API_KEY: '<你的 NCBI API key，可选>'
+    AUTO_GRAPH: true        # 可选：true 时每次 pubmed_fetch_articles 自动并入会话图谱
+```
+
+| 配置项 | 作用 |
 |---|---|
-| `NCBI_API_KEY` | 提高 NCBI 限流（10 req/s 而非 3 req/s） |
-| `NCBI_ADMIN_EMAIL` | NCBI 建议的联系邮箱 |
-| `EUROPEPMC_ENABLED` | 控制 Europe PMC 相关工具 |
-| `AUTO_GRAPH` | 设为 `1`：每次 `pubmed_fetch_articles` 自动并入当前会话知识图谱（硬保证，无需每轮手动 `graph_add`） |
+| `NCBI_API_KEY` | 提高 NCBI 限流（10 req/s 而非 3 req/s）；也可用环境变量 `NCBI_API_KEY` |
+| `AUTO_GRAPH` | 每次 `pubmed_fetch_articles` 自动并入当前会话知识图谱（硬保证，无需每轮手动 `graph_add`）；也可用环境变量 `AUTO_GRAPH=1` |
+| `NCBI_ADMIN_EMAIL` | NCBI 建议的联系邮箱（环境变量） |
+| `EUROPEPMC_ENABLED` | 控制 Europe PMC 相关工具（环境变量） |
 
 无 API key 时插件内置**全局 ~350ms 请求队列**（≈2.8 req/s，低于 NCBI 3 req/s）；配置 `NCBI_API_KEY`
 后自动提速至 **~120ms（≈8 req/s，低于 10 req/s 上限）**。并行调用也会串行化，避免 429。

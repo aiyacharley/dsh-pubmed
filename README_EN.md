@@ -114,15 +114,25 @@ Clear: pubmed_graph_reset({ scope: 'session' })   # or scope: 'user'
 
 ## ⚙️ Configuration
 
-No runtime configuration required. Optional environment variables (set in the profile patch row's
-`config.env` or the process environment):
+No runtime configuration is required. Optional settings (recommended via the profile patch row
+`config` — more reliable than environment variables, which may not reach the bundle depending on how
+DSH is launched):
 
-| Variable | Effect |
+```yaml
+# Your profile file, e.g. C:\Users\<you>\.dsh\profiles\<profile>\cordis.patch.yml
+# Note: patch entries are PLAIN { id, config } objects — do NOT wrap with `- override:`.
+- id: pubmed
+  config:
+    NCBI_API_KEY: '<your NCBI API key, optional>'
+    AUTO_GRAPH: true        # optional: auto-merge each fetch into the session graph
+```
+
+| Setting | Effect |
 |---|---|
-| `NCBI_API_KEY` | Higher NCBI rate limit (10 req/s instead of 3 req/s) |
-| `NCBI_ADMIN_EMAIL` | Contact email recommended by NCBI |
-| `EUROPEPMC_ENABLED` | Toggle the Europe PMC tools |
-| `AUTO_GRAPH` | Set to `1`: every `pubmed_fetch_articles` call auto-merges into the current session knowledge graph (no manual `graph_add` per round) |
+| `NCBI_API_KEY` | Higher NCBI rate limit (10 req/s instead of 3 req/s); env `NCBI_API_KEY` also works |
+| `AUTO_GRAPH` | Every `pubmed_fetch_articles` call auto-merges into the current session knowledge graph (no manual `graph_add` per round); env `AUTO_GRAPH=1` also works |
+| `NCBI_ADMIN_EMAIL` | Contact email recommended by NCBI (env) |
+| `EUROPEPMC_ENABLED` | Toggle the Europe PMC tools (env) |
 
 Without an API key the plugin serializes requests through a global ~350 ms queue
 (~2.8 req/s, under NCBI's 3 req/s); with `NCBI_API_KEY` it auto-accelerates to
