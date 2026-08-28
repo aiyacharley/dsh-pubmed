@@ -7,10 +7,10 @@
 
 Ports the core capabilities of [`@cyanheads/pubmed-mcp-server`](https://github.com/cyanheads/pubmed-mcp-server)
 into native DSH model tools: search, article metadata, full text, citation formatting, MeSH and ID
-conversion, plus a **personal literature knowledge graph** — 16 tools in total, talking directly to
-NCBI E-utilities and the Europe PMC REST API. No MCP client configuration required.
+conversion, plus a **personal literature knowledge graph** and a **PubTator3 concept graph** — 19 tools in
+total, talking directly to NCBI E-utilities, Europe PMC REST and PubTator3. No MCP client configuration required.
 
-## ✨ Features (16 tools)
+## ✨ Features (19 tools)
 
 | Tool | Description |
 |---|---|
@@ -25,8 +25,11 @@ NCBI E-utilities and the Europe PMC REST API. No MCP client configuration requir
 | `pubmed_spell_check` | Query spelling correction (ESpell) |
 | `pubmed_europepmc_search` | Europe PMC search (MED/PMC/PPR/PAT/AGR, cursor paging) |
 | `pubmed_europepmc_fetch` | Complete Europe PMC record (untruncated abstract) |
+| `pubmed_pubtator_annotate` | PubTator3 entity annotations (BioC JSON; Gene/Chemical/Disease/Mutation/CellLine/Species with concept IDs; `full:true` for full text) |
+| `pubmed_pubtator_entity_id` | Resolve a free-text bioconcept to concept IDs (autocomplete; e.g. IgA → ncbi_gene:973) |
+| `pubmed_pubtator_relations` | Curated bio-relations between concepts (treat/cause/inhibit/... with publication-count evidence) |
 | `pubmed_extract_keywords` | Extract keywords from articles (MeSH weighted + NLP noun phrases/frequency, optional compromise NLP) |
-| `pubmed_graph_add` | **Incrementally** add one retrieval round into the current session knowledge graph (in-memory, per-session; includes directed "X regulates/promotes/inhibits Y" relation edges) |
+| `pubmed_graph_add` | **Incrementally** add one retrieval round into the current session knowledge graph (in-memory, per-session; heuristic relation edges + PubTator concept nodes & curated relations) |
 | `pubmed_graph_get` | Get the session / user graph (`format:'json'` nodes+edges, or `format:'mermaid'` colored flowchart card, NPG palette) |
 | `pubmed_graph_commit` | **Explicitly** merge the session graph into your persistent personal user graph (not automatic) |
 | `pubmed_graph_reset` | Clear the session graph (or the user graph) |
@@ -126,18 +129,27 @@ DSH is launched):
   config:
     NCBI_API_KEY: '<your NCBI API key, optional>'
     AUTO_GRAPH: false        # optional: defaults to true; set false to disable auto-merge
+    PUBTATOR: false          # optional: defaults to true (PubTator concept layer); set false for heuristic-only
 ```
 
 | Setting | Effect |
 |---|---|
 | `NCBI_API_KEY` | Higher NCBI rate limit (10 req/s instead of 3 req/s); env `NCBI_API_KEY` also works |
 | `AUTO_GRAPH` | **ON by default**: every `pubmed_fetch_articles` call auto-merges into the current session knowledge graph; disable with `AUTO_GRAPH: false` (or env `AUTO_GRAPH=0`) |
+| `PUBTATOR` | **ON by default**: graph building auto-fetches PubTator3 concepts (with IDs) + curated relations; falls back to heuristic NLP when PubTator is unavailable; set `PUBTATOR: false` to fully disable the concept layer |
 | `NCBI_ADMIN_EMAIL` | Contact email recommended by NCBI (env) |
 | `EUROPEPMC_ENABLED` | Toggle the Europe PMC tools (env) |
+
+### 🧬 Concept-graph notes
+
+- Nodes come in three kinds: **articles** (red), **keywords** (green, heuristic/MeSH), **concepts** (deep blue, PubTator3 entities with authoritative IDs such as `IgA[973]`, `human[9606]`, deduplicated by ID across articles).
+- Edges: article↔keyword/concept (co-occurrence), heuristic relations (red arrows, "X regulates Y"), curated concept relations (red arrows, treat/cause/interact/... with publication-count evidence).
+- `pubmed_graph_get({ format:'mermaid' })` renders an NPG-palette card. PubTator is the primary path with heuristic fallback — any failure degrades gracefully without breaking graph building.
 
 Without an API key the plugin serializes requests through a global ~350 ms queue
 (~2.8 req/s, under NCBI's 3 req/s); with `NCBI_API_KEY` it auto-accelerates to
 ~120 ms (~8 req/s, under the 10 req/s cap). Parallel calls are serialized to avoid 429s.
+PubTator3 calls share the same paced queue (its official limit is 3 req/s).
 
 ## ✅ Requirements
 

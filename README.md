@@ -8,10 +8,10 @@
 **PubMed / Europe PMC 文献检索插件 for DeepSeek Harness (DSH)**
 
 把 [`@cyanheads/pubmed-mcp-server`](https://github.com/cyanheads/pubmed-mcp-server) 的核心能力
-移植成 DSH 原生模型工具：搜索、文章元数据、全文、引用格式化、MeSH、ID 转换、**个人文献知识图谱**等 16 个工具，
-直接对接 NCBI E-utilities 与 Europe PMC REST，无需额外的 MCP 客户端配置。
+移植成 DSH 原生模型工具：搜索、文章元数据、全文、引用格式化、MeSH、ID 转换、**个人文献知识图谱**、**PubTator3 概念图谱**等 19 个工具，
+直接对接 NCBI E-utilities、Europe PMC REST 与 PubTator3，无需额外的 MCP 客户端配置。
 
-## ✨ 功能（16 个工具）
+## ✨ 功能（19 个工具）
 
 | 工具 | 说明 |
 |---|---|
@@ -26,13 +26,14 @@
 | `pubmed_spell_check` | 检索词拼写纠正（ESpell） |
 | `pubmed_europepmc_search` | Europe PMC 检索（MED/PMC/PPR/PAT/AGR，游标分页） |
 | `pubmed_europepmc_fetch` | Europe PMC 单条完整记录（含未截断摘要） |
+| `pubmed_pubtator_annotate` | PubTator3 实体标注（BioC JSON，Gene/Chemical/Disease/Mutation/CellLine/Species，带概念 ID；可 `full:true` 全文） |
+| `pubmed_pubtator_entity_id` | 自由文本生物概念 → 概念 ID（autocomplete，如 IgA → ncbi_gene:973） |
+| `pubmed_pubtator_relations` | 概念间 curated 关系（treat/cause/inhibit/...，带 publications 证据数） |
 | `pubmed_extract_keywords` | 提取关键词（MeSH 加权 + NLP 名词短语/词频，含可选 compromise NLP） |
-| `pubmed_graph_add` | 把一轮检索文章**增量并入当前会话知识图谱**（内存、按会话隔离；含 "X 调控/促进/抑制 Y" 有向关系边） |
+| `pubmed_graph_add` | 把一轮检索文章**增量并入当前会话知识图谱**（内存、按会话隔离；含启发式关系边 + PubTator 概念节点与 curated 关系） |
 | `pubmed_graph_get` | 查询会话 / 用户知识图谱（`format:'json'` 节点+边，或 `format:'mermaid'` 彩色流程图卡片，NPG 配色） |
 | `pubmed_graph_commit` | **显式**把会话图谱并入持久化的个人用户图谱（默认不自动加入） |
 | `pubmed_graph_reset` | 清空会话图谱（或用户图谱） |
-| `pubmed_europepmc_search` | Europe PMC 检索（MED/PMC/PPR/PAT/AGR，游标分页） |
-| `pubmed_europepmc_fetch` | Europe PMC 单条完整记录（含未截断摘要） |
 
 ## 📦 安装
 
@@ -128,17 +129,25 @@ bundle 运行时无需配置即可使用。可选配置项（**推荐写进 prof
   config:
     NCBI_API_KEY: '<你的 NCBI API key，可选>'
     AUTO_GRAPH: false        # 可选：默认 true（开启）；设 false 关闭自动并入会话图谱
+    PUBTATOR: false          # 可选：默认 true（PubTator 概念层开启）；设 false 只走启发式关键词/关系
 ```
 
 | 配置项 | 作用 |
 |---|---|
 | `NCBI_API_KEY` | 提高 NCBI 限流（10 req/s 而非 3 req/s）；也可用环境变量 `NCBI_API_KEY` |
 | `AUTO_GRAPH` | **默认开启（true）**：每次 `pubmed_fetch_articles` 自动并入当前会话知识图谱；想关闭设 `AUTO_GRAPH: false`（或环境变量 `AUTO_GRAPH=0`） |
+| `PUBTATOR` | **默认开启（true）**：建图时自动拉 PubTator3 概念（带 ID）+ curated 关系；PubTator 不可用时自动降级回启发式；设 `PUBTATOR: false` 完全关闭概念层 |
 | `NCBI_ADMIN_EMAIL` | NCBI 建议的联系邮箱（环境变量） |
 | `EUROPEPMC_ENABLED` | 控制 Europe PMC 相关工具（环境变量） |
 
+### 🧬 概念图谱说明
+
+- 图谱节点分三类：**文章**（红）、**关键词**（绿，启发式词频/MeSH）、**concept**（深蓝，PubTator3 实体，带权威概念 ID 如 `IgA[973]`、`human[9606]`，按 ID 跨文章去重）。
+- 边：文章↔关键词/概念（共现）、启发式关系（红箭头，X 调控 Y）、curated 概念关系（红箭头，treat/cause/interact...，带 publications 证据数）。
+- `pubmed_graph_get({ format:'mermaid' })` 生成 NPG 配色的卡片；PubTator 主路径 + 启发式兜底，任何失败不中断建图。
+
 无 API key 时插件内置**全局 ~350ms 请求队列**（≈2.8 req/s，低于 NCBI 3 req/s）；配置 `NCBI_API_KEY`
-后自动提速至 **~120ms（≈8 req/s，低于 10 req/s 上限）**。并行调用也会串行化，避免 429。
+后自动提速至 **~120ms（≈8 req/s，低于 10 req/s 上限）**。并行调用也会串行化，避免 429。PubTator3 同样受限流队列约束（其官方限额为 3 req/s）。
 
 ## ✅ 要求
 
