@@ -72,4 +72,31 @@ const checks = [
 ]
 for (const [name, ok] of checks) console.log((ok ? 'PASS' : 'FAIL') + '  ' + name)
 if (checks.some(([, ok]) => !ok)) { console.log('PUBTATOR FAIL'); process.exit(1) }
+
+// ---- B2: entity_id (autocomplete) ----
+const AUTO = [
+  { _id: '@GENE_CD79A', biotype: 'gene', db_id: '973', db: 'ncbi_gene', name: 'CD79A', match: 'Matched on synonyms <m>IGA</m>' },
+  { _id: '@DISEASE_IgA_Vasculitis', biotype: 'disease', db_id: 'D011695', db: 'ncbi_mesh', name: 'IgA Vasculitis', match: 'Matched on name <m>IgA Vasculitis</m>' },
+]
+const tools2 = {}
+registerPubmedTools({ get: () => undefined }, {
+  defineTool: (o) => o,
+  register: (d) => { tools2[d.name] = d },
+  httpGet: async (url) => {
+    if (String(url).includes('entity/autocomplete')) return { status: 200, body: JSON.stringify(AUTO) }
+    return { status: 200, body: JSON.stringify(JSON_BODY) }
+  },
+  sleep: (ms) => new Promise((r) => setTimeout(r, ms)),
+})
+const eid = await tools2.pubmed_pubtator_entity_id.execute({ query: 'IgA', concept: 'gene', limit: 10 }, S('pt'))
+console.log('B2 entity_id candidates:', eid.entityCount)
+for (const e of eid.entities) console.log('    ' + e.id + ' | ' + e.db + ':' + e.dbId + ' | ' + e.biotype + ' | ' + e.name)
+const checks2 = [
+  ['B2 has 2 candidates', eid.entityCount === 2],
+  ['B2 gene @GENE_CD79A', eid.entities[0].id === '@GENE_CD79A' && eid.entities[0].dbId === '973'],
+  ['B2 match html stripped', !eid.entities[0].match.includes('<m>')],
+  ['B2 lossless', walk(eid)],
+]
+for (const [name, ok] of checks2) console.log((ok ? 'PASS' : 'FAIL') + '  ' + name)
+if (checks2.some(([, ok]) => !ok)) { console.log('ENTITY_ID FAIL'); process.exit(1) }
 console.log('PUBTATOR TEST OK')
