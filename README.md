@@ -126,13 +126,13 @@ bundle 运行时无需配置即可使用。可选配置项（**推荐写进 prof
 - id: pubmed
   config:
     NCBI_API_KEY: '<你的 NCBI API key，可选>'
-    AUTO_GRAPH: true        # 可选：true 时每次 pubmed_fetch_articles 自动并入会话图谱
+    AUTO_GRAPH: false        # 可选：默认 true（开启）；设 false 关闭自动并入会话图谱
 ```
 
 | 配置项 | 作用 |
 |---|---|
 | `NCBI_API_KEY` | 提高 NCBI 限流（10 req/s 而非 3 req/s）；也可用环境变量 `NCBI_API_KEY` |
-| `AUTO_GRAPH` | 每次 `pubmed_fetch_articles` 自动并入当前会话知识图谱（硬保证，无需每轮手动 `graph_add`）；也可用环境变量 `AUTO_GRAPH=1` |
+| `AUTO_GRAPH` | **默认开启（true）**：每次 `pubmed_fetch_articles` 自动并入当前会话知识图谱；想关闭设 `AUTO_GRAPH: false`（或环境变量 `AUTO_GRAPH=0`） |
 | `NCBI_ADMIN_EMAIL` | NCBI 建议的联系邮箱（环境变量） |
 | `EUROPEPMC_ENABLED` | 控制 Europe PMC 相关工具（环境变量） |
 

@@ -124,13 +124,13 @@ DSH is launched):
 - id: pubmed
   config:
     NCBI_API_KEY: '<your NCBI API key, optional>'
-    AUTO_GRAPH: true        # optional: auto-merge each fetch into the session graph
+    AUTO_GRAPH: false        # optional: defaults to true; set false to disable auto-merge
 ```
 
 | Setting | Effect |
 |---|---|
 | `NCBI_API_KEY` | Higher NCBI rate limit (10 req/s instead of 3 req/s); env `NCBI_API_KEY` also works |
-| `AUTO_GRAPH` | Every `pubmed_fetch_articles` call auto-merges into the current session knowledge graph (no manual `graph_add` per round); env `AUTO_GRAPH=1` also works |
+| `AUTO_GRAPH` | **ON by default**: every `pubmed_fetch_articles` call auto-merges into the current session knowledge graph; disable with `AUTO_GRAPH: false` (or env `AUTO_GRAPH=0`) |
 | `NCBI_ADMIN_EMAIL` | Contact email recommended by NCBI (env) |
 | `EUROPEPMC_ENABLED` | Toggle the Europe PMC tools (env) |
 
