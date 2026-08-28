@@ -1,6 +1,6 @@
 {
   "name": "dsh-pubmed",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "DSH plugin: PubMed / Europe PMC search, article metadata, full text, citations, MeSH and ID conversion for the DeepSeek Harness. Ports the capabilities of @cyanheads/pubmed-mcp-server into native DSH model tools.",
   "type": "module",
   "main": "lib/index.js",
