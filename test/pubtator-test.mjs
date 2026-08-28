@@ -99,4 +99,33 @@ const checks2 = [
 ]
 for (const [name, ok] of checks2) console.log((ok ? 'PASS' : 'FAIL') + '  ' + name)
 if (checks2.some(([, ok]) => !ok)) { console.log('ENTITY_ID FAIL'); process.exit(1) }
+
+// ---- B3: relations ----
+const RELS = [
+  { type: 'interact', source: '@GENE_FCAR', target: '@GENE_CD79A', publications: 66 },
+  { type: 'interact', source: '@GENE_CD79A', target: '@GENE_CD79B', publications: 47 },
+  { type: 'treat', source: '@CHEMICAL_Steroids', target: '@DISEASE_IgA_Vasculitis', publications: 193 },
+]
+const tools3 = {}
+registerPubmedTools({ get: () => undefined }, {
+  defineTool: (o) => o,
+  register: (d) => { tools3[d.name] = d },
+  httpGet: async (url) => {
+    if (String(url).includes('entity/autocomplete')) return { status: 200, body: JSON.stringify(AUTO) }
+    if (String(url).includes('/relations')) return { status: 200, body: JSON.stringify(RELS) }
+    return { status: 200, body: JSON.stringify(JSON_BODY) }
+  },
+  sleep: (ms) => new Promise((r) => setTimeout(r, ms)),
+})
+const rel = await tools3.pubmed_pubtator_relations.execute({ e1: '@GENE_CD79A', type: 'interact', e2: 'gene', limit: 25 }, S('pt'))
+console.log('B3 relations:', rel.relationCount)
+for (const r of rel.relations) console.log('    ' + r.source + ' --[' + r.type + '(' + r.publications + ')]--> ' + r.target)
+const checks3 = [
+  ['B3 has 3 relations', rel.relationCount === 3],
+  ['B3 type interact', rel.relations[0].type === 'interact'],
+  ['B3 publications 66', rel.relations[0].publications === 66],
+  ['B3 lossless', walk(rel)],
+]
+for (const [name, ok] of checks3) console.log((ok ? 'PASS' : 'FAIL') + '  ' + name)
+if (checks3.some(([, ok]) => !ok)) { console.log('RELATIONS FAIL'); process.exit(1) }
 console.log('PUBTATOR TEST OK')
