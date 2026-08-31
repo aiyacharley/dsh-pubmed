@@ -167,7 +167,8 @@ bundle 运行时无需配置即可使用。可选配置项（**推荐写进 prof
 - `pubmed_graph_get({ format:'mermaid' })` 生成 NPG 配色的卡片；PubTator 主路径 + 启发式兜底，任何失败不中断建图。
 
 无 API key 时插件内置**全局 ~350ms 请求队列**（≈2.8 req/s，低于 NCBI 3 req/s）；配置 `NCBI_API_KEY`
-后自动提速至 **~120ms（≈8 req/s，低于 10 req/s 上限）**。并行调用也会串行化，避免 429。PubTator3 同样受限流队列约束（其官方限额为 3 req/s）。
+后 E-utilities 队列自动提速至 **~120ms（≈8 req/s，低于 10 req/s 上限）**。并行调用也会串行化，避免 429。
+PubTator3 走**独立的 ~350ms 专用队列**（其官方限额为 3 req/s，与 NCBI API key 无关），不会随 API key 提速。
 
 ## ✅ 要求
 
