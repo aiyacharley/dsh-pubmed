@@ -8,10 +8,10 @@
 Starting from the core PubMed capabilities of [`@cyanheads/pubmed-mcp-server`](https://github.com/cyanheads/pubmed-mcp-server)
 and substantially extended into native DSH model tools: beyond search, article metadata, full text, citation
 formatting, MeSH and ID conversion, it adds a **personal literature knowledge graph** (session/user dual graphs)
-and a **PubTator3 concept layer** (typed entities with authoritative IDs + curated relations) — 19 tools in
+and a **PubTator3 concept layer** (typed entities with authoritative IDs + curated relations) — 20 tools in
 total, talking directly to NCBI E-utilities, Europe PMC REST and PubTator3. No MCP client configuration required.
 
-## ✨ Features (19 tools)
+## ✨ Features (20 tools)
 
 | Tool | Description |
 |---|---|
@@ -29,6 +29,7 @@ total, talking directly to NCBI E-utilities, Europe PMC REST and PubTator3. No M
 | `pubmed_pubtator_annotate` | PubTator3 entity annotations (BioC JSON; Gene/Chemical/Disease/Mutation/CellLine/Species with concept IDs; `full:true` for full text) |
 | `pubmed_pubtator_entity_id` | Resolve a free-text bioconcept to concept IDs (autocomplete; e.g. IgA → ncbi_gene:973) |
 | `pubmed_pubtator_relations` | Curated bio-relations between concepts (treat/cause/inhibit/... with publication-count evidence) |
+| `pubmed_pubtator_search` | PubTator3 **semantic / relation search**: free text / @entity IDs / boolean combos / `relations:type\|entityA\|entityB` (paginated, with year/journal/type facet stats; resolve @IDs via entity_id, feed hits into graph_add) |
 | `pubmed_extract_keywords` | Extract keywords from articles (MeSH weighted + NLP noun phrases/frequency, optional compromise NLP) |
 | `pubmed_graph_add` | **Incrementally** add one retrieval round into the current session knowledge graph (in-memory, per-session; heuristic relation edges + PubTator concept nodes & curated relations) |
 | `pubmed_graph_get` | Get the session / user graph (`format:'json'` nodes+edges, or `format:'mermaid'` colored flowchart card, NPG palette) |

@@ -10,9 +10,9 @@
 以 [`@cyanheads/pubmed-mcp-server`](https://github.com/cyanheads/pubmed-mcp-server) 的核心 PubMed 能力
 为起点，移植并大幅扩展为 DSH 原生模型工具：搜索、文章元数据、全文、引用格式化、MeSH、ID 转换之外，
 新增**个人文献知识图谱**（会话/用户双图谱）与 **PubTator3 概念层**（带权威概念 ID 的实体 + curated 关系），
-共 19 个工具，直接对接 NCBI E-utilities、Europe PMC REST 与 PubTator3，无需额外的 MCP 客户端配置。
+共 20 个工具，直接对接 NCBI E-utilities、Europe PMC REST 与 PubTator3，无需额外的 MCP 客户端配置。
 
-## ✨ 功能（19 个工具）
+## ✨ 功能（20 个工具）
 
 | 工具 | 说明 |
 |---|---|
@@ -30,6 +30,7 @@
 | `pubmed_pubtator_annotate` | PubTator3 实体标注（BioC JSON，Gene/Chemical/Disease/Mutation/CellLine/Species，带概念 ID；可 `full:true` 全文） |
 | `pubmed_pubtator_entity_id` | 自由文本生物概念 → 概念 ID（autocomplete，如 IgA → ncbi_gene:973） |
 | `pubmed_pubtator_relations` | 概念间 curated 关系（treat/cause/inhibit/...，带 publications 证据数） |
+| `pubmed_pubtator_search` | PubTator3 **语义/关系搜索**：自由文本 / @实体 ID / 布尔组合 / `relations:类型\|实体A\|实体B`（支持分页与年份/期刊/类型 facets 统计；实体 A 可来自 entity_id，命中 PMIDs 可喂给 graph_add） |
 | `pubmed_extract_keywords` | 提取关键词（MeSH 加权 + NLP 名词短语/词频，含可选 compromise NLP） |
 | `pubmed_graph_add` | 把一轮检索文章**增量并入当前会话知识图谱**（内存、按会话隔离；含启发式关系边 + PubTator 概念节点与 curated 关系） |
 | `pubmed_graph_get` | 查询会话 / 用户知识图谱（`format:'json'` 节点+边，或 `format:'mermaid'` 彩色流程图卡片，NPG 配色） |
