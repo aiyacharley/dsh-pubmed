@@ -43,17 +43,32 @@ dsh-pubmed v0.2.1 已集成 PubTator3 的三个点状 API（标注导出 / 实�
   先 `slice(0, 20)` 再过滤"文内边"，hub 概念的文内边可能被截掉。
   → 修复：改为先过滤文内边、后按 20 条截断。
 
+### 2.3 真机验证（v0.2.2）新发现的存量小瑕疵（→ P3.5）
+
+2025-06 真机测试（PMID 29355051 + 39747692 建图全链路）记录；均为存量问题，与前置修复无关：
+
+- **[瑕疵-1] 自环关系边**：图谱出现 `IgA[973] --interact--> IgA[973]`——PubTator 对免疫球蛋白
+  二聚体返回 source==target 的自身相互作用，`defaultExtractPubtatorRelations` 未过滤。
+  修复：映射到 nodeId 后跳过 `tNode === c.nodeId` 的关系。
+- **[瑕疵-2] 空/占位 ID 概念节点**：PubTator 对未归一化提及会给出空或占位标识符，入图后出现
+  `Chinese herbal[-]` 这类节点。修复：概念入图前丢弃空 ID（与 `mergeGraph` 现有的
+  `if (!cid) continue` 防御合并，同时覆盖 `-` 这类占位值）。
+- **[瑕疵-3] mermaid classDef 错位**：`minCount` 修剪后同一节点可能同时进入 kw 与 concept
+  两个 class 列表（本次 `tumor`/`H22` 双重命中），渲染可能串色。修复：mermaid 生成器的
+  class 分配按修剪后的最终节点列表计算、互斥归类。
+
 ## 3. 功能规划总表
 
 | 优先级 | 功能 | 新增/改动 | 价值 | 工作量 | 计划版本 |
 |---|---|---|---|---|---|
 | ✅ 前置 | P3.1 PubTator 限流队列分离 + BUG-2 修复 | 改 core | 正确性修复，P0 上量前必须先做 | 0.25d | 已完成 |
-| **P0** | **`pubmed_pubtator_search` 语义/关系搜索** | 新工具 | 补齐旗舰能力，打通建图闭环 | 0.5–1d | v0.3.0 |
-| P1b | annotate 支持 PMCID（`pmc_export`） | 扩展现有工具 | 全文链路补口子 | 0.25d | v0.3.0 |
+| ✅ **P0** | **`pubmed_pubtator_search` 语义/关系搜索** | 新工具 | 补齐旗舰能力，打通建图闭环 | 0.5–1d | ✅ 已完成（v0.3.0） |
+| P1b | annotate 支持 PMCID（`pmc_export`） | 扩展现有工具 | 全文链路补口子 | 0.25d | v0.3.1 |
 | P1a | `pubmed_pubtator_relation_evidence` + 图谱边证据 | 新工具 + 改建图 | 边从"计数"变"可审计" | 0.5d | v0.3.1 |
 | P3.2 | annotate >100 PMID 自动分批 | 改 core | 大批量不丢数据 | 0.25d | v0.3.1 |
 | P3.3 | 会话级 annotate 缓存统一 | 改 core | 同 PMID 不重复拉取 | 0.25d | v0.3.1 |
 | P3.4 | 建图关系探测策略化（类型优先 + 可配置） | 改 core | 高价值边更全 | 0.25d | v0.3.1 |
+| P3.5 | 真机验证发现的 3 个存量小瑕疵（自环边 / 空 ID 概念 / mermaid classDef 错位，见 §2.3） | 改 core | 数据质量与渲染正确性 | 0.25d | v0.3.1 |
 | **P2** | **`pubmed_pubtator_annotate_text` 原始文本标注** | 新工具 + transport 扩展 | 独有差异化能力（自有文本入图谱/稿件检查） | 1–1.5d | v0.4.0 |
 
 ---
@@ -87,16 +102,16 @@ register('pubmed_pubtator_search', '…', {
 
 **实现要点**：
 
-- [ ] 走 `pubtatorScheduled`（P3.1 新队列），禁用共用 ncbiScheduled
-- [ ] 解析返回 JSON → `{ articles: [{pmid, title, snippet}], totalCount, page }`（**输出结构以实测为准，见 §8 Q1**）
-- [ ] `relationType` + `e1`/`e2` 便捷参数拼装（`|` 字符需 `encodeURIComponent`）
-- [ ] `pubmed_pubtator_entity_id` 的描述里补一句"拿到 @ID 后可用本工具检索"
+- [x] 走 `pubtatorScheduled`（P3.1 新队列），禁用共用 ncbiScheduled
+- [x] 解析返回 JSON → `{ articles: [{pmid, pmcid, title, journal, date, authors[≤3], doi, score, snippet}], page, pageSize, totalCount, totalPages, facets{year/journal/type top5} }`（✅ 已实测，见 §8 Q1；`text_hl` 的 `<m>` 高亮标签已剥离进 snippet）
+- [x] `relationType` + `e1`/`e2` 便捷参数拼装（`e2` 缺省为 `ANY`；拼装后的 query 经 `qs()` 全量 `encodeURIComponent`）
+- [x] `pubmed_pubtator_entity_id` 的描述里补一句"拿到 @ID 后可用本工具检索"
 
 **验收标准**：
 
-- [ ] 四种查询形态各一条冒烟用例通过
-- [ ] 关系查询返回的文章可被 `pubmed_graph_add` 消化（闭环手测）
-- [ ] 限速场景（连续 >3 req/s）无 429
+- [x] 四种查询形态各一条冒烟用例通过（`test/pubtator-search-test.mjs`，20 项断言全过）
+- [ ] 关系查询返回的文章可被 `pubmed_graph_add` 消化（闭环手测——重装 v0.3.0 后真机验证）
+- [ ] 限速场景（连续 >3 req/s）无 429（队列层已有回归测试；真机抽查）
 
 **典型组合流**：`entity_id`（文本→@ID）→ `pubtator_search`（@ID/关系→文章）→ `fetch_articles` → `graph_add`（证据入图）
 
@@ -205,8 +220,8 @@ register('pubmed_pubtator_annotate_text', '…', {
 
 | 版本 | 内容 | 出口条件 |
 |---|---|---|
-| **v0.3.0** | P3.1 + P0 + P1b | 新工具冒烟通过；README/README_EN 工具表更新；CHANGELOG + changelog/ 条目 |
-| **v0.3.1** | P1a + P3.2–P3.4 | 图谱边证据可开关且默认向后兼容；pubtator-test 覆盖新路径 |
+| **v0.3.0** | ✅ P3.1 + P0（P1b 移至 v0.3.1） | 新工具冒烟通过（20/20 断言）；README/README_EN 工具表更新（19→20） |
+| **v0.3.1** | P1b（pmcids）+ P1a + P3.2–P3.5 | 图谱边证据可开关且默认向后兼容；pubtator-test 覆盖新路径 |
 | **v0.4.0** | P2（含 transport POST 扩展） | 两步异步全链路 + 超时/取消测试通过 |
 
 ## 6. 测试计划
@@ -234,7 +249,7 @@ register('pubmed_pubtator_annotate_text', '…', {
 
 | # | 问题 | 建议 |
 |---|---|---|
-| Q1 | search API 返回 JSON 的确切结构（官方文档未给出） | P0 第一步用 PMID=21049050 等样例实测，把 schema 固化进解析器注释 |
+| ✅ Q1 | search API 返回 JSON 的确切结构（官方文档未给出） | **已实测（2025-06，Tavily 云端提取）**：DRF 分页 JSON —— `{ results: [{ _id, pmid(number), pmcid?, title, journal, authors[], date, doi?, meta_date_publication, score(number), text_hl(含 <m> 高亮), citations?{NLM,BibTeX} }], facets: { facet_fields: { journal/type/year: [{name, value}] } }, page_size(=10), current, count, total_pages }`。关系式查询同构；schema 已固化进 `pubmed_pubtator_search` 解析器注释 |
 | Q2 | annotate_text 的 `bioconcept` 实际支持取值 | 实测逐类验证，修正 enum |
 | Q3 | pmc_export 走方案 A（扩展 annotate）还是新工具 | **建议方案 A**（见 P1b） |
 | Q4 | 图谱边证据默认开还是关 | 建议默认开、每边 ≤5 条、仅低证据边回查，config 可关 |
