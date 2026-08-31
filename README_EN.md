@@ -3,11 +3,12 @@
 [![npm version](https://img.shields.io/npm/v/dsh-pubmed)](https://www.npmjs.com/package/dsh-pubmed)
 [![Listed on dsh-plugin.org](https://dsh-plugin.org/badges/listed.svg)](https://dsh-plugin.org/plugins/aiyacharley/dsh-pubmed)
 
-**PubMed / Europe PMC literature search plugin for DeepSeek Harness (DSH)**
+**PubMed / Europe PMC literature search + personal knowledge graph plugin for DeepSeek Harness (DSH)**
 
-Ports the core capabilities of [`@cyanheads/pubmed-mcp-server`](https://github.com/cyanheads/pubmed-mcp-server)
-into native DSH model tools: search, article metadata, full text, citation formatting, MeSH and ID
-conversion, plus a **personal literature knowledge graph** and a **PubTator3 concept graph** — 19 tools in
+Starting from the core PubMed capabilities of [`@cyanheads/pubmed-mcp-server`](https://github.com/cyanheads/pubmed-mcp-server)
+and substantially extended into native DSH model tools: beyond search, article metadata, full text, citation
+formatting, MeSH and ID conversion, it adds a **personal literature knowledge graph** (session/user dual graphs)
+and a **PubTator3 concept layer** (typed entities with authoritative IDs + curated relations) — 19 tools in
 total, talking directly to NCBI E-utilities, Europe PMC REST and PubTator3. No MCP client configuration required.
 
 ## ✨ Features (19 tools)
@@ -179,5 +180,16 @@ PubTator3 calls share the same paced queue (its official limit is 3 req/s).
 
 ## 📄 License
 
-Apache-2.0. Functionality ported from [@cyanheads/pubmed-mcp-server](https://github.com/cyanheads/pubmed-mcp-server)
-(Apache-2.0, by Casey Hand).
+Apache-2.0.
+
+- **Origin**: initially ported from [`@cyanheads/pubmed-mcp-server`](https://github.com/cyanheads/pubmed-mcp-server)
+  (Apache-2.0, by Casey Hand) — the core PubMed capabilities (search, article metadata, full text,
+  citations, MeSH, ID conversion) originate from that project.
+- **This plugin's own extensions** (not present upstream): the personal literature knowledge-graph engine
+  (session/user dual graphs, incremental merging), the PubTator3 concept layer (typed entity nodes with
+  authoritative concept IDs + curated relation edges), heuristic NLP (noun-phrase keywords + stem-based
+  relation extraction), NPG-palette mermaid visualization, proxy network fallback, and the
+  config-driven primary/fallback dual-strategy design are all original to this plugin.
+
+> This plugin is therefore no longer a plain "port": the PubMed retrieval layer credits the upstream
+> project, while the knowledge-graph and concept layers are independent extensions.

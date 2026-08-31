@@ -5,11 +5,12 @@
 [![npm version](https://img.shields.io/npm/v/dsh-pubmed)](https://www.npmjs.com/package/dsh-pubmed)
 [![Listed on dsh-plugin.org](https://dsh-plugin.org/badges/listed.svg)](https://dsh-plugin.org/plugins/aiyacharley/dsh-pubmed)
 
-**PubMed / Europe PMC 文献检索插件 for DeepSeek Harness (DSH)**
+**PubMed / Europe PMC 文献检索 + 个人知识图谱插件 for DeepSeek Harness (DSH)**
 
-把 [`@cyanheads/pubmed-mcp-server`](https://github.com/cyanheads/pubmed-mcp-server) 的核心能力
-移植成 DSH 原生模型工具：搜索、文章元数据、全文、引用格式化、MeSH、ID 转换、**个人文献知识图谱**、**PubTator3 概念图谱**等 19 个工具，
-直接对接 NCBI E-utilities、Europe PMC REST 与 PubTator3，无需额外的 MCP 客户端配置。
+以 [`@cyanheads/pubmed-mcp-server`](https://github.com/cyanheads/pubmed-mcp-server) 的核心 PubMed 能力
+为起点，移植并大幅扩展为 DSH 原生模型工具：搜索、文章元数据、全文、引用格式化、MeSH、ID 转换之外，
+新增**个人文献知识图谱**（会话/用户双图谱）与 **PubTator3 概念层**（带权威概念 ID 的实体 + curated 关系），
+共 19 个工具，直接对接 NCBI E-utilities、Europe PMC REST 与 PubTator3，无需额外的 MCP 客户端配置。
 
 ## ✨ 功能（19 个工具）
 
@@ -176,5 +177,13 @@ bundle 运行时无需配置即可使用。可选配置项（**推荐写进 prof
 
 ## 📄 License
 
-Apache-2.0。功能移植自 [@cyanheads/pubmed-mcp-server](https://github.com/cyanheads/pubmed-mcp-server)
-（Apache-2.0，作者 Casey Hand）。
+Apache-2.0。
+
+- **来源**：最初移植自 [`@cyanheads/pubmed-mcp-server`](https://github.com/cyanheads/pubmed-mcp-server)
+  （Apache-2.0，作者 Casey Hand）——检索、文章元数据、全文、引用、MeSH、ID 转换等核心 PubMed 能力源于该项目。
+- **本插件的扩展**（原项目没有的能力）：个人文献知识图谱引擎（会话/用户双图谱、增量合并）、
+  PubTator3 概念层（带权威概念 ID 的实体节点 + curated 关系边）、启发式 NLP（名词短语关键词 +
+  词干关系抽取）、NPG 配色 mermaid 可视化、代理网络兜底、配置驱动的双策略（主路径+兜底）等，
+  均为本插件原创设计实现。
+
+> 因此本插件不再是单纯的"移植版"：PubMed 检索层致敬原项目，知识图谱与概念层为独立扩展。
