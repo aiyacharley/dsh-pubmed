@@ -79,13 +79,17 @@ const add = (name, ok) => checks.push([name, ok])
 }
 
 // ---- T2: convenience relations assembly (with e2) ----
+// NOTE: no `query` property at all — mirrors the live framework call that
+// v0.3.0 rejected because the schema then marked query as required (hotfixed
+// in v0.3.1: query is optional when relationType + e1 are given).
 {
   const urls = []
   const tools = makeTools(FIXTURE, urls)
-  const r = await tools.pubmed_pubtator_search.execute({ query: '', relationType: 'treat', e1: '@CHEMICAL_Doxorubicin', e2: 'DISEASE' }, S('ps'))
+  const r = await tools.pubmed_pubtator_search.execute({ relationType: 'treat', e1: '@CHEMICAL_Doxorubicin', e2: 'DISEASE' }, S('ps'))
   const q = decoded(urls[urls.length - 1])
   add('T2 assembles relations:treat|@CHEMICAL_Doxorubicin|DISEASE', q.get('text') === 'relations:treat|@CHEMICAL_Doxorubicin|DISEASE')
   add('T2 query echoed in result', r.query === 'relations:treat|@CHEMICAL_Doxorubicin|DISEASE')
+  add('T2 works without a query property (v0.3.0 framework rejection regression)', q.has('text') && r.articleCount === 2)
 }
 
 // ---- T3: convenience relations assembly (e2 defaults to ANY) ----
