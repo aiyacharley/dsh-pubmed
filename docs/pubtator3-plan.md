@@ -63,12 +63,12 @@ dsh-pubmed v0.2.1 已集成 PubTator3 的三个点状 API（标注导出 / 实�
 |---|---|---|---|---|---|
 | ✅ 前置 | P3.1 PubTator 限流队列分离 + BUG-2 修复 | 改 core | 正确性修复，P0 上量前必须先做 | 0.25d | 已完成 |
 | ✅ **P0** | **`pubmed_pubtator_search` 语义/关系搜索** | 新工具 | 补齐旗舰能力，打通建图闭环 | 0.5–1d | ✅ 已完成（v0.3.0） |
-| P1b | annotate 支持 PMCID（`pmc_export`） | 扩展现有工具 | 全文链路补口子 | 0.25d | v0.3.1 |
-| P1a | `pubmed_pubtator_relation_evidence` + 图谱边证据 | 新工具 + 改建图 | 边从"计数"变"可审计" | 0.5d | v0.3.1 |
-| P3.2 | annotate >100 PMID 自动分批 | 改 core | 大批量不丢数据 | 0.25d | v0.3.1 |
-| P3.3 | 会话级 annotate 缓存统一 | 改 core | 同 PMID 不重复拉取 | 0.25d | v0.3.1 |
-| P3.4 | 建图关系探测策略化（类型优先 + 可配置） | 改 core | 高价值边更全 | 0.25d | v0.3.1 |
-| P3.5 | 真机验证发现的 3 个存量小瑕疵（自环边 / 空 ID 概念 / mermaid classDef 错位，见 §2.3） | 改 core | 数据质量与渲染正确性 | 0.25d | v0.3.1 |
+| P1b | annotate 支持 PMCID（`pmc_export`） | 扩展现有工具 | 全文链路补口子 | 0.25d | v0.3.2 |
+| P1a | `pubmed_pubtator_relation_evidence` + 图谱边证据 | 新工具 + 改建图 | 边从"计数"变"可审计" | 0.5d | v0.3.2 |
+| P3.2 | annotate >100 PMID 自动分批 | 改 core | 大批量不丢数据 | 0.25d | v0.3.2 |
+| P3.3 | 会话级 annotate 缓存统一 | 改 core | 同 PMID 不重复拉取 | 0.25d | v0.3.2 |
+| P3.4 | 建图关系探测策略化（类型优先 + 可配置） | 改 core | 高价值边更全 | 0.25d | v0.3.2 |
+| P3.5 | 真机验证发现的 3 个存量小瑕疵（自环边 / 空 ID 概念 / mermaid classDef 错位，见 §2.3） | 改 core | 数据质量与渲染正确性 | 0.25d | v0.3.2 |
 | **P2** | **`pubmed_pubtator_annotate_text` 原始文本标注** | 新工具 + transport 扩展 | 独有差异化能力（自有文本入图谱/稿件检查） | 1–1.5d | v0.4.0 |
 
 ---
@@ -109,9 +109,13 @@ register('pubmed_pubtator_search', '…', {
 
 **验收标准**：
 
-- [x] 四种查询形态各一条冒烟用例通过（`test/pubtator-search-test.mjs`，20 项断言全过）
-- [ ] 关系查询返回的文章可被 `pubmed_graph_add` 消化（闭环手测——重装 v0.3.0 后真机验证）
-- [ ] 限速场景（连续 >3 req/s）无 429（队列层已有回归测试；真机抽查）
+- [x] 四种查询形态各一条冒烟用例通过（`test/pubtator-search-test.mjs`，21 项断言全过）
+- [x] 关系查询返回的文章可被 `pubmed_graph_add` 消化（✅ 真机闭环：`relations:treat|@CHEMICAL_Doxorubicin|DISEASE` → 36,347 命中 → 3 篇 fetch → autoGraph +182 节点/+3534 边）
+- [x] 限速场景无 429（✅ 真机抽查：3 个 PubTator 调用并发发出，队列串行化后全部成功）
+
+**真机热修（v0.3.1）**：host 框架在 schema 层校验 `required: true`，导致便捷参数调用（不带 `query`）
+在进入工具前被拒。修复：`query` 改为可选（`relationType + e1` 存在时），运行时校验兜底
+（无 query 且无关系参数 → 报 "No query provided"）。测试补 T2 回归（不带 query 属性）。
 
 **典型组合流**：`entity_id`（文本→@ID）→ `pubtator_search`（@ID/关系→文章）→ `fetch_articles` → `graph_add`（证据入图）
 
@@ -220,8 +224,9 @@ register('pubmed_pubtator_annotate_text', '…', {
 
 | 版本 | 内容 | 出口条件 |
 |---|---|---|
-| **v0.3.0** | ✅ P3.1 + P0（P1b 移至 v0.3.1） | 新工具冒烟通过（20/20 断言）；README/README_EN 工具表更新（19→20） |
-| **v0.3.1** | P1b（pmcids）+ P1a + P3.2–P3.5 | 图谱边证据可开关且默认向后兼容；pubtator-test 覆盖新路径 |
+| **v0.3.0** | ✅ P3.1 + P0（P1b 移至 v0.3.2） | 新工具冒烟通过（20/20 断言）；README/README_EN 工具表更新（19→20） |
+| **v0.3.1** | ✅ P0 真机验收完成 + schema 热修（query 可选） | 真机闭环（关系搜索→建图 +182 节点）与限速抽查通过；21/21 断言 |
+| **v0.3.2** | P1b（pmcids）+ P1a + P3.2–P3.5 | 图谱边证据可开关且默认向后兼容；pubtator-test 覆盖新路径 |
 | **v0.4.0** | P2（含 transport POST 扩展） | 两步异步全链路 + 超时/取消测试通过 |
 
 ## 6. 测试计划
