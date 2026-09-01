@@ -26,11 +26,11 @@ const article = {
   abstractText: 'Gut microbiota regulates bile acid metabolism. Lactobacillus produces indole-3-lactic acid. Short chain fatty acids promote host immunity. Microbiota modulates inflammation. The host-microbiota interaction plays a crucial role in maintaining homeostasis, and microbial tryptophan metabolites are potent modulators of host physiology.',
 }
 
-// A: keyword extraction
-const ek = await tools.pubmed_extract_keywords.execute({ articles: [article], maxKeywords: 20 }, S('a'))
-const kws = ek.articles[0].keywords
-console.log('A) NLP keywords (' + kws.length + '): ' + kws.slice(0, 12).map((k) => k.word + '(' + k.count + ')').join(', '))
-if (kws.length < 8) { console.log('KEYWORDS FAIL'); process.exit(1) }
+// A: keyword extraction (via graph_add dryRun — pubmed_extract_keywords removed)
+await tools.pubmed_graph_reset.execute({ scope: 'session' }, S('a'))
+const dr = await tools.pubmed_graph_add.execute({ articles: [article], dryRun: true }, S('a'))
+console.log('A) dryRun preview → wouldAddNodes=' + dr.wouldAddNodes + ' wouldAddEdges=' + dr.wouldAddEdges)
+if (dr.wouldAddNodes < 5) { console.log('KEYWORDS FAIL'); process.exit(1) }
 
 // B: graph with relation edges
 await tools.pubmed_graph_reset.execute({ scope: 'session' }, S('a'))

@@ -21,7 +21,6 @@
 #     pubmed_pubtator_relations, pubmed_pubtator_search
 #   Knowledge graph: pubmed_graph_add, pubmed_graph_get, pubmed_graph_commit,
 #     pubmed_graph_reset
-#   Deprecated (pending removal): pubmed_extract_keywords
 - insert:
     - id: pubmed
       name: 'dsh-pubmed'

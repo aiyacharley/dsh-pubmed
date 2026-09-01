@@ -73,12 +73,6 @@ const articles = (await tools.pubmed_fetch_articles.execute({ pmids: ['37054671'
 console.log('fetched articles for graph: ' + articles.length)
 if (articles.length !== 2) { console.log('GRAPH FETCH FAIL'); process.exit(1) }
 
-// extract keywords
-const ek = await tools.pubmed_extract_keywords.execute({ articles: articles.slice(0, 1), maxKeywords: 10 }, { signal })
-const kwCount = ek.articles[0].keywords.length
-console.log('extract keywords[0] count=' + kwCount + ' top=' + (ek.articles[0].keywords[0] || {}).word)
-if (kwCount < 3) { console.log('EXTRACT FAIL'); process.exit(1) }
-
 // session graph: incremental adds in session A
 const add1 = await tools.pubmed_graph_add.execute({ articles: articles.slice(0, 1) }, S('sess-A'))
 console.log('add[0] -> nodes=' + add1.stats.nodeCount + ' edges=' + add1.stats.edgeCount + ' (+' + add1.addedNodes + 'n/+' + add1.addedEdges + 'e)')

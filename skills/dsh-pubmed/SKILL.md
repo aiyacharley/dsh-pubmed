@@ -26,7 +26,7 @@ entity_id（文本→@ID）→ pubtator_search（@ID/关系式→文章）→ fe
 ```
 
 - `pubmed_fetch_articles` 在 AUTO_GRAPH 开启（默认）时**自动并入**会话图谱——不要额外手动 `graph_add`。
-- `pubmed_graph_add` 内部已做关键词提取 + PubTator 概念/关系富集——**不要先调** `pubmed_extract_keywords`（已废弃，预览用 `dryRun:true`）。curated 关系边默认带 `evidencePmids` 支持文献（`PUBTATOR_EDGE_EVIDENCE:false` 可关）。
+- `pubmed_graph_add` 内部已做关键词提取 + PubTator 概念/关系富集——curated 关系边默认带 `evidencePmids` 支持文献（`PUBTATOR_EDGE_EVIDENCE:false` 可关）。关键词预览用 `graph_add({dryRun:true})`。
 - 会话图谱累积后 `pubmed_graph_commit` 显式持久化到用户图谱（默认不自动写）。
 - `pubmed_graph_get({ format:'mermaid' })` 可直接渲染为可视化卡片。
 
@@ -63,7 +63,6 @@ entity_id（文本→@ID）→ pubtator_search（@ID/关系式→文章）→ fe
 | `pubmed_pubtator_entity_id` | query + concept | 候选 @实体 ID 列表 |
 | `pubmed_pubtator_relations` | e1 + type/e2 + evidence | curated 关系边（+证据 PMIDs）|
 | `pubmed_pubtator_search` | query/relationType+e1+e2 + page | 排序文章 + facets |
-| `pubmed_extract_keywords` | articles | ⚠️ 已废弃（用 graph_add dryRun）|
 | `pubmed_graph_add` | articles + dryRun | 增量入图（+节点/边统计）|
 | `pubmed_graph_get` | scope + format + minCount | 节点/边 JSON 或 mermaid 卡片|
 | `pubmed_graph_commit` | confirm | 会话图谱 → 用户图谱持久化|

@@ -41,13 +41,7 @@ const a3 = {
   meshTerms: [{ descriptorName: 'Bile Acids and Salts' }, { descriptorName: 'Liver Diseases' }, { descriptorName: 'Gastrointestinal Microbiome' }],
 }
 
-// 1) extract
-const ek = await tools.pubmed_extract_keywords.execute({ articles: [a1], maxKeywords: 8 }, S('sA'))
-const k1 = ek.articles[0].keywords
-console.log('extract[0] -> ' + k1.length + ' keywords: ' + k1.slice(0, 6).map((x) => x.word + '(' + x.count + ')').join(', '))
-if (k1.length < 3 || !k1.some((x) => x.word === 'microbiota')) { console.log('EXTRACT FAIL'); process.exit(1) }
-
-// 2) incremental session build in session A
+// 1) incremental session build in session A
 const add1 = await tools.pubmed_graph_add.execute({ articles: [a1] }, S('sA'))
 console.log('add[a1] -> nodes=' + add1.stats.nodeCount + ' edges=' + add1.stats.edgeCount)
 const add2 = await tools.pubmed_graph_add.execute({ articles: [a2] }, S('sA'))

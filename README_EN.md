@@ -8,10 +8,10 @@
 Starting from the core PubMed capabilities of [`@cyanheads/pubmed-mcp-server`](https://github.com/cyanheads/pubmed-mcp-server)
 and substantially extended into native DSH model tools: beyond search, article metadata, full text, citation
 formatting, MeSH and ID conversion, it adds a **personal literature knowledge graph** (session/user dual graphs)
-and a **PubTator3 concept layer** (typed entities with authoritative IDs + curated relations) — 20 tools in
+and a **PubTator3 concept layer** (typed entities with authoritative IDs + curated relations) — 19 tools in
 total, talking directly to NCBI E-utilities, Europe PMC REST and PubTator3. No MCP client configuration required.
 
-## ✨ Features (20 tools)
+## ✨ Features (19 tools)
 
 | Tool | Description |
 |---|---|
@@ -30,7 +30,6 @@ total, talking directly to NCBI E-utilities, Europe PMC REST and PubTator3. No M
 | `pubmed_pubtator_entity_id` | Resolve a free-text bioconcept to concept IDs (autocomplete; e.g. IgA → ncbi_gene:973) |
 | `pubmed_pubtator_relations` | Curated bio-relations between concepts (treat/cause/inhibit/... with publication-count evidence; `evidence:true` attaches **supporting article PMIDs** to the first relations) |
 | `pubmed_pubtator_search` | PubTator3 **semantic / relation search**: free text / @entity IDs / boolean combos / `relations:type\|entityA\|entityB` (paginated, with year/journal/type facet stats; resolve @IDs via entity_id, feed hits into graph_add) |
-| `pubmed_extract_keywords` | ⚠️ **DEPRECATED** — use `pubmed_graph_add({ dryRun: true })` to preview extraction (removed in a future release) |
 | `pubmed_graph_add` | **Incrementally** add one retrieval round into the current session knowledge graph (in-memory, per-session; heuristic relation edges + PubTator concept nodes & curated relations; curated edges carry `evidencePmids` by default — `PUBTATOR_EDGE_EVIDENCE:false` to disable; `dryRun:true` previews without mutating) |
 | `pubmed_graph_get` | Get the session / user graph (`format:'json'` nodes+edges, or `format:'mermaid'` colored flowchart card, NPG palette) |
 | `pubmed_graph_commit` | **Explicitly** merge the session graph into your persistent personal user graph (not automatic) |
@@ -256,7 +255,7 @@ PubTator3 runs on its **own dedicated ~350 ms queue** (its official limit is 3 r
 
 ## 📜 Version history
 
-- **v0.3.8** (09-01) — **P4 batch 2**: Europe PMC calls wrapped in the network retry layer; atomic user-graph write (tmp + rename, crash-safe); per-session graph write serialization (concurrent graph_add / AUTO_GRAPH / commit can no longer interleave); @-prefix auto-normalization for search/relations entity args; SKILL.md expansion (20-tool quick reference + config table + pitfall list); npm scripts (`npm test`) + Release workflow test gate; no-proxy live test: concurrent graph_adds serialized without interleaving, EPM/search dual-pass.
+- **v0.3.8** (09-01) — **P4 batch 2**: removed deprecated `pubmed_extract_keywords` (use `graph_add({dryRun:true})` for preview); Europe PMC calls wrapped in the network retry layer; atomic user-graph write (tmp + rename, crash-safe); per-session graph write serialization (concurrent graph_add / AUTO_GRAPH / commit can no longer interleave); @-prefix auto-normalization for search/relations entity args; SKILL.md expansion (tool quick reference + config table + pitfall list); npm scripts (`npm test`) + Release workflow test gate; no-proxy live test: concurrent graph_adds serialized without interleaving, EPM/search dual-pass.
 - **v0.3.7** (09-01) — **P0 fix: large-scale graph building no longer times out**: mergeGraph batch-prefetch (200 articles drop from 200+ PubTator calls to 2) + probe/evidence budgets (default 8 articles per merge, configurable) + 150 s enrichment deadline with graceful truncation + `httpGet` timeouts actually enforced (graph_add 180 s / fetch_articles 120 s); fixed prefetch failures poisoning the session cache; no-proxy live test **18/18 passed**.
 - **v0.3.6** (09-01) — **Skill doc self-registration**: at plugin activation SKILL.md is written to `~/.dsh/skills/dsh-pubmed/` (a scanned DSH skill root) — clean installs need zero manual copying; idempotent rewrites on upgrade; `SKILL_DOC:false` disables; Release workflow fixed (secrets-in-if parse failure → shell guard).
 - **v0.3.5** (09-01) — **No-proxy resilience**: network-classified failures auto-retry (1s/3s backoff) + Europe PMC fallback chain (`search_articles` / `convert_ids` / `find_related(cited_by/references)` switch to EPM, marked `[via europepmc fallback]`) + actionable errors (dead local proxy vs unreachable host); no-proxy usable tools **2/20 → ~13/20** (blackhole-window floor; open-window live test **18/18 passed**).

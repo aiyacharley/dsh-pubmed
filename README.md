@@ -10,9 +10,9 @@
 以 [`@cyanheads/pubmed-mcp-server`](https://github.com/cyanheads/pubmed-mcp-server) 的核心 PubMed 能力
 为起点，移植并大幅扩展为 DSH 原生模型工具：搜索、文章元数据、全文、引用格式化、MeSH、ID 转换之外，
 新增**个人文献知识图谱**（会话/用户双图谱）与 **PubTator3 概念层**（带权威概念 ID 的实体 + curated 关系），
-共 20 个工具，直接对接 NCBI E-utilities、Europe PMC REST 与 PubTator3，无需额外的 MCP 客户端配置。
+共 19 个工具，直接对接 NCBI E-utilities、Europe PMC REST 与 PubTator3，无需额外的 MCP 客户端配置。
 
-## ✨ 功能（20 个工具）
+## ✨ 功能（19 个工具）
 
 | 工具 | 说明 |
 |---|---|
@@ -31,7 +31,6 @@
 | `pubmed_pubtator_entity_id` | 自由文本生物概念 → 概念 ID（autocomplete，如 IgA → ncbi_gene:973） |
 | `pubmed_pubtator_relations` | 概念间 curated 关系（treat/cause/inhibit/...，带 publications 证据数；`evidence:true` 可为前几条关系附带**支持文献 PMIDs**） |
 | `pubmed_pubtator_search` | PubTator3 **语义/关系搜索**：自由文本 / @实体 ID / 布尔组合 / `relations:类型\|实体A\|实体B`（支持分页与年份/期刊/类型 facets 统计；实体 A 可来自 entity_id，命中 PMIDs 可喂给 graph_add） |
-| `pubmed_extract_keywords` | ⚠️ **已废弃**——用 `pubmed_graph_add({ dryRun: true })` 预览提取结果（下个版本移除） |
 | `pubmed_graph_add` | 把一轮检索文章**增量并入当前会话知识图谱**（内存、按会话隔离；含启发式关系边 + PubTator 概念节点与 curated 关系；关系边默认带 `evidencePmids` 证据文献，`PUBTATOR_EDGE_EVIDENCE:false` 可关；`dryRun:true` 只预览不落盘） |
 | `pubmed_graph_get` | 查询会话 / 用户知识图谱（`format:'json'` 节点+边，或 `format:'mermaid'` 彩色流程图卡片，NPG 配色） |
 | `pubmed_graph_commit` | **显式**把会话图谱并入持久化的个人用户图谱（默认不自动加入） |
@@ -253,7 +252,7 @@ PubTator3 走**独立的 ~350ms 专用队列**（其官方限额为 3 req/s，�
 
 ## 📜 版本历史
 
-- **v0.3.8**（09-01）— **P4 批次二**：Europe PMC 调用套网络重试层；用户图谱原子写（tmp+rename，防崩溃损坏）；图写入按会话串行化（并发 graph_add / AUTO_GRAPH / commit 不再交错）；search/relations 实体参数 @ 前缀自动归一化；SKILL.md 扩充（20 工具速查表 + 配置项表 + 易错点清单）；npm scripts（`npm test`）+ Release workflow 测试门；无代理实测：并发 graph_add 串行无交错、EPM/search 双通。
+- **v0.3.8**（09-01）— **P4 批次二**：移除已废弃的 `pubmed_extract_keywords`（关键词预览用 `graph_add({dryRun:true})`）；Europe PMC 调用套网络重试层；用户图谱原子写（tmp+rename，防崩溃损坏）；图写入按会话串行化（并发 graph_add / AUTO_GRAPH / commit 不再交错）；search/relations 实体参数 @ 前缀自动归一化；SKILL.md 扩充（工具速查表 + 配置项表 + 易错点清单）；npm scripts（`npm test`）+ Release workflow 测试门；无代理实测：并发 graph_add 串行无交错、EPM/search 双通。
 - **v0.3.7**（09-01）— **P0 修复：大规模建图不再超时**：mergeGraph 批量预取（200 篇从 200+ 次 PubTator 调用降到 2 次）+ 探测/证据预算（默认 8 篇/次合并，可配置）+ 富集 150s 死线优雅截断 + `httpGet` 超时真正生效（graph_add 180s / fetch_articles 120s）；修复预取失败污染会话缓存；无代理实测 **18/18 通过**。
 - **v0.3.6**（09-01）— **技能文档自注册**：插件激活时自动把 SKILL.md 写入 `~/.dsh/skills/dsh-pubmed/`（DSH 扫描的技能 root）——纯净安装零手工，升级幂等改写，`SKILL_DOC:false` 可关；Release workflow 修复（secrets-in-if 解析失败 → shell 守卫）。
 - **v0.3.5**（09-01）— **无代理韧性**：网络类失败自动退避重试（1s/3s）+ EBI 降级链（`search_articles` / `convert_ids` / `find_related(cited_by/references)` 自动切 Europe PMC，带 `[via europepmc fallback]` 标记）+ 可行动报错（自动区分"本地代理已挂"vs"目标不可达"）；无代理可用工具 **2/20 → ~13/20**（黑洞窗口期底线；直连窗口期实测 **18/18 全通过**）。
