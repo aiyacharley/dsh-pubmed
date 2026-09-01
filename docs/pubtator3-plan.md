@@ -322,6 +322,23 @@ register('pubmed_pubtator_annotate_text', '…', {
 - **P2 服务成熟度**：annotate_text 走的是 CBBresearch/Lu/Demo 老牌 RESTful 服务（非 pubtator3-api 域），SLA/稳定性弱于主站——工具报错必须清晰可恢复（session id 续取），不做静默重试。
 - **向后兼容**：图谱节点/边结构只增不改；新增 config 项均有保守默认值。
 
+### 7.1 中国大陆无代理网络实测（2026-09-01，P3.8 依据）
+
+诊断矩阵（本机，无代理直连，`curl --noproxy '*' --ssl-no-revoke`）：
+
+| 目标 | TCP 443 | TLS | 结论 |
+|---|---|---|---|
+| eutils / www.ncbi.nlm.nih.gov | **间歇通**（一度黑洞 21s 超时，另一窗口 3×200 全通） | Node 软失败 ✅；Windows curl 硬失败（CRYPT_E_REVOCATION_OFFLINE，CRL 服务器同样被墙） | **可达但易抖动**；Node 类应用（插件/Claude Code）可用，curl 需 `--ssl-no-revoke` |
+| www.ebi.ac.uk（Europe PMC） | 稳定通 | ✅ | 直连可靠，可作降级通路 |
+| NCBI 端点归属 | 解析到 **Google Cloud**（34.107.x / 2600:1901::） | — | GCP 网段大陆可达性随策略波动——"曾经直连可用、后来不通、现在又通"的根源 |
+
+关键教训：诊断工具本身会被污染——宿主残留的 `HTTPS_PROXY=127.0.0.1:7897`（代理软件已关、env 未清）让 curl/插件的代理重试路径全部指向死端口，"fetch failed" 实为**死代理失败而非网络不通**。排查网络问题必须先排除环境变量干扰（`curl --noproxy '*'`）。
+
+**对 P3.8 的设计修正**：
+1. **重试是第一优先级**（新增）：NCBI 直连是"间歇可用"而非"恒定阻断"，TCP 黑洞窗口以分钟计——`ncbiScheduled`/`pubtatorScheduled` 对 connect 失败（ECONNREFUSED/ETIMEDOUT/ECONNRESET）做 1 次退避重试（1s + 3s 两档），即可把瞬时黑洞窗口的无感恢复做掉；EBI 降级链作为重试后的第二层。
+2. EBI 降级链 + `PUBTATOR_BASE_URL`/`EUTILS_BASE_URL` 可配置：维持原三层方案。
+3. 错误信息区分两类：直连黑洞（建议重试/配代理）vs 死代理（建议清理 env）——message 里带上"over proxy 127.0.0.1"特征即可自动判别。
+
 ## 8. 待实测 / 待决策（Open Questions）
 
 | # | 问题 | 建议 |
