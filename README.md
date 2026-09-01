@@ -226,6 +226,18 @@ bundle 运行时无需配置即可使用。可选配置项（**推荐写进 prof
 后 E-utilities 队列自动提速至 **~120ms（≈8 req/s，低于 10 req/s 上限）**。并行调用也会串行化，避免 429。
 PubTator3 走**独立的 ~350ms 专用队列**（其官方限额为 3 req/s，与 NCBI API key 无关），不会随 API key 提速。
 
+## 🌐 无代理网络（大陆直连）
+
+很多用户没有代理——v0.3.5 起插件的韧性设计保证**无代理时依然可用**：
+
+- **自动重试**：NCBI 前端在 Google Cloud 上，大陆直连存在分钟级"黑洞窗口"（时通时断）。网络类失败自动按 1s/3s 退避重试，瞬时窗口无感恢复；HTTP 4xx/5xx 视为真实答案不重试。
+- **Europe PMC 自动降级**：NCBI 持续不可达时，`search_articles`、`convert_ids`、`find_related(cited_by/references)` 自动切换 **Europe PMC（其 MED 源即 PubMed 本体）**，结果带 `[via europepmc fallback]` 标记与说明。
+- **能力矩阵（无代理）**：
+  - ✅ 全功能：Europe PMC 双工具；PubTator 三工具与 search（直连窗口期）；search / convert_ids / find_related（重试 + 降级双保险）
+  - ⚠️ 受限：`find_related similar`（EBI 无对等接口，报错说明）、`spell_check`、`lookup_mesh`（NCBI 独有，报错含可行动提示）
+- **可行动报错**：网络失败自动区分"本地代理已挂"（提示清理 `HTTPS_PROXY`）与"目标不可达"（建议重试 / 降级 / 配代理），不再抛裸 `fetch failed`。
+- 想要 100% 稳定仍推荐开代理；自建反代用户可期待 v0.4.0 的 `BASE_URL` 可配置（计划中）。
+
 ## 🧭 Agent 路由技能（跨会话）
 
 随包附带 `skills/dsh-pubmed/SKILL.md`：一份给 agent 看的 20 工具路由指南（按话术选入口、

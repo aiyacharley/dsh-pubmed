@@ -36,6 +36,18 @@ total, talking directly to NCBI E-utilities, Europe PMC REST and PubTator3. No M
 | `pubmed_graph_commit` | **Explicitly** merge the session graph into your persistent personal user graph (not automatic) |
 | `pubmed_graph_reset` | Clear the session graph (or the user graph) |
 
+## 🌐 No-proxy networks (mainland-China direct)
+
+Many users have no proxy — from v0.3.5 the plugin's resilience design keeps it **usable without one**:
+
+- **Auto-retry**: NCBI's frontend runs on Google Cloud; direct connectivity from mainland China fluctuates in minute-scale "blackhole windows". Network-classified failures retry automatically with 1s/3s backoff — transient windows recover invisibly. HTTP 4xx/5xx are treated as real answers and never retried.
+- **Europe PMC automatic fallback**: when NCBI stays unreachable, `search_articles`, `convert_ids`, and `find_related(cited_by/references)` switch to **Europe PMC (its MED source mirrors PubMed)**, marked with `[via europepmc fallback]`.
+- **Capability matrix (no proxy)**:
+  - ✅ Full: both Europe PMC tools; PubTator tools & search during open windows; search / convert_ids / find_related (retry + fallback double cover)
+  - ⚠️ Limited: `find_related similar` (no EPM equivalent — explained in the error), `spell_check`, `lookup_mesh` (NCBI-only; errors carry actionable hints)
+- **Actionable errors**: network failures distinguish "your local proxy is down" (clean up `HTTPS_PROXY`) from "host unreachable" (retry / fallback / use a proxy) — no more bare `fetch failed`.
+- For 100% stability a proxy is still recommended; self-hosted reverse-proxy users can look forward to `BASE_URL` configuration in v0.4.0 (planned).
+
 ## 🧭 Agent routing skill (cross-session)
 
 The bundle ships `skills/dsh-pubmed/SKILL.md`: a 20-tool routing guide for agents
