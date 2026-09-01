@@ -73,7 +73,7 @@ Paste either block below **as a whole** into a DSH session; the agent installs a
 - **Session-level · takes effect immediately (local source required)**:
 
 ````text
-[Please install the dsh-pubmed plugin (PubMed search, 11 tools)]
+[Please install the dsh-pubmed plugin (PubMed / Europe PMC search + knowledge graph, 20 tools)]
 1) Locate the dsh-pubmed package directory (containing lib/pubmed-core.js). If it is not present locally, first run: git clone https://github.com/aiyacharley/dsh-pubmed.git; if you still cannot find it, ask me or search my workspace/user directory for "pubmed-core.js".
 2) Read lib/dynamic-wrapper.js in that directory as the code.host for cordis_define, replacing <DSH_PUBMED_CORE_PATH> with the absolute path to lib/pubmed-core.js and <DSH_PUBMED_DIR> with the dsh-pubmed package directory.
 3) Activate with cordis_run (mode=run).
@@ -153,6 +153,32 @@ pubmed_graph_reset({ scope: 'session' })                   # start over (or scop
 | Names a specific bioconcept or a drug/gene-disease relation, wants articles | `pubtator_search` (**preferred**: entity-normalized + relation-aware, synonym-immune) |
 | Needs field syntax / date ranges / publication-type filters | `pubmed_search_articles` (the only tool with full PubMed syntax) |
 | PubMed coverage too narrow (preprints/patents/non-journal) | `europepmc_search` → `europepmc_fetch` |
+
+## ⚡ Why it saves time
+
+In one sentence: **it turns manual database sifting into machine pre-screening + human judgment** — you read no less, but everything you read is far more likely to be relevant.
+
+| Lever | Traditional | This plugin |
+|---|---|---|
+| Search precision | Keyword co-occurrence: synonym misses + irrelevant noise | Entity normalization (DOX/Adriamycin → MESH:D004317) + relation semantics (co-occurrence ≠ supporting a relation) |
+| Evidence chains | Read reviews → chase references by hand → track in Excel | `relations` skeleton → `evidence:true` for supporting PMIDs → auto-written onto graph edges — **auditable, reproducible, cumulative** |
+| Literature management | Flat lists (Zotero/Excel); relations live in your head | Incremental knowledge graph: entities deduped by authoritative ID, evidence-carrying edges, mermaid visualization (500 articles in 70 ms) |
+| Workflow coverage | Switching between PubMed / NLM / EBI | 20 tools chained inside one agent session: search → full text → citations → graph |
+
+**The evidence chain, end to end** (every step has live-tested data behind it):
+
+```mermaid
+flowchart LR
+  Q["Research question<br/>drug-disease"] --> ID["entity_id<br/>text → canonical @ID"]
+  ID --> R["relations<br/>skeleton + evidence counts"]
+  R --> E["evidence:true<br/>supporting PMIDs"]
+  E --> S["relation search<br/>ranked articles"]
+  S --> F["fetch / fulltext<br/>read the source"]
+  F --> G["graph_add<br/>evidence into the graph"]
+  G --> A["graph_get<br/>auditable chain"]
+```
+
+**Honest boundaries**: pre-screening and structuring do not replace reading — the scientific judgment happens after you read the source; the heuristic keyword layer is noisy (by design, it is the fallback); curated relations come from PubTator models and may lag brand-new literature. It converts 80% of mechanical retrieval time into 20% high-quality reading time — it does not read the literature for you.
 
 ## 🧬 Workflow
 

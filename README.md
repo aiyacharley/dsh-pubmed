@@ -66,7 +66,7 @@ dsh plugin --profile web add dsh-pubmed@latest              # 从 npm 安装（�
 - **会话级 · 当前会话立即生效（需本机有源码）**：
 
 ````text
-【请帮我安装 dsh-pubmed 插件（PubMed 检索，11 个工具）】
+【请帮我安装 dsh-pubmed 插件（PubMed / Europe PMC 检索 + 知识图谱，20 个工具）】
 1) 先定位 dsh-pubmed 包目录（含 lib/pubmed-core.js）。若本机还没有，先 git clone https://github.com/aiyacharley/dsh-pubmed.git；找不到就问我。
 2) 读取该目录 lib/dynamic-wrapper.js 作为 cordis_define 的 code.host，并把 <DSH_PUBMED_CORE_PATH> 替换为 lib/pubmed-core.js 的绝对路径、<DSH_PUBMED_DIR> 替换为 dsh-pubmed 包目录。
 3) cordis_run 激活（mode=run）。
@@ -146,6 +146,32 @@ pubmed_graph_reset({ scope: 'session' })                  # 清空重来（或 s
 | 提到具体生物实体或药-病关系，要文献 | `pubtator_search`（**首选**：实体归一化 + 关系语义，同义词噪音免疫） |
 | 需要字段语法/日期范围/出版类型过滤 | `pubmed_search_articles`（唯一支持完整 PubMed 语法） |
 | PubMed 覆盖不足（预印本/专利/非期刊） | `europepmc_search` → `europepmc_fetch` |
+
+## ⚡ 为什么提效
+
+核心一句话：**把科研中的"人工筛库"变成"机器预筛 + 人工裁决"**——阅读量不减，但读到的每一篇都更可能是对的。
+
+| 杠杆 | 传统做法 | 本插件 |
+|---|---|---|
+| 检索精度 | 关键词共现：同义词漏检 + 无关噪音混入 | 实体归一化（DOX/Adriamycin/阿霉素 → MESH:D004317）+ 关系语义（共现≠支持关系） |
+| 证据链条 | 读综述 → 手工追参考文献 → Excel 记录 | `relations` 骨架 → `evidence:true` 拿支持文献 PMIDs → 自动写入图谱边，**可审计、可复现、可累积** |
+| 文献管理 | 平铺列表（Zotero/Excel），文章间关系靠脑子记 | 增量知识图谱：实体按权威 ID 去重、关系边带证据、mermaid 可视化（500 篇 70ms） |
+| 流程覆盖 | PubMed / NLM / EBI 多网站来回切换 | 20 个工具在同一 agent 会话内联动，检索→全文→引用→图谱一条链 |
+
+**证据链一条龙**（每一步都有实测数据支撑）：
+
+```mermaid
+flowchart LR
+  Q["研究问题<br/>某药-某病"] --> ID["entity_id<br/>文本 → 规范@ID"]
+  ID --> R["relations<br/>关系骨架 + 证据计数"]
+  R --> E["evidence:true<br/>支持文献 PMIDs"]
+  E --> S["search 关系式<br/>相关文章排序"]
+  S --> F["fetch / fulltext<br/>精读原文"]
+  F --> G["graph_add<br/>证据入图"]
+  G --> A["graph_get<br/>可审计证据链"]
+```
+
+**诚实边界**：预筛与结构化不代替阅读——科学判断仍在读完原文之后；启发式关键词层有噪音（兜底层设计使然）；curated 关系来自 PubTator 模型抽取，极新文献可能滞后。它是"把 80% 的机械检索时间变成 20% 的高质量阅读时间"，不是"代替你读文献"。
 
 ## 🧬 工作流
 
