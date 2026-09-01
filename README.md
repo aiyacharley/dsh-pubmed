@@ -239,15 +239,21 @@ PubTator3 走**独立的 ~350ms 专用队列**（其官方限额为 3 req/s，�
 - **实测（09-01，无代理直连）**：**18/18 工具全通过**（直连窗口期 20/20 全可用）——双源检索、DOI 回路、cited_by 引文网络、4 万字符全文、跨工具缓存命中（`cacheHits: 1` 零网络复用）、`evidencePmids` 证据边、dryRun 预览均正常。
 - 想要 100% 稳定仍推荐开代理；自建反代用户可期待 v0.4.0 的 `BASE_URL` 可配置（计划中）。
 
-## 🧭 Agent 路由技能（跨会话）
+## 🧭 Agent 路由技能（跨会话，自动注册）
 
 随包附带 `skills/dsh-pubmed/SKILL.md`：一份给 agent 看的 20 工具路由指南（按话术选入口、
-建图链路组合流、三类搜索边界、限速常识）。把它安装到 DSH 的技能目录（如
-`~/.agents/skills/dsh-pubmed/SKILL.md`）后，**新会话**的 agent 无需阅读本文档即可正确调度
+建图链路组合流、三类搜索边界、限速常识）。**插件激活时自动把它注册到 `~/.dsh/skills/dsh-pubmed/`**
+（被 DSH 扫描的技能 root）——纯净安装零手工，新会话的 agent 无需阅读本文档即可正确调度
 三套检索与建图工具。
+
+- 内容随版本升级自动改写（幂等，仅内容变化时写入）
+- 关闭：patch config `SKILL_DOC: false`（或环境变量 `SKILL_DOC=0`）
+- 卸载插件后技能文件保留（孤儿文件，可手动删除）
+- 动态模式（`lib/dynamic-wrapper.js` 沙箱无 fs 写入）仍需手动拷贝到技能目录
 
 ## 📜 版本历史
 
+- **v0.3.6**（09-01）— **技能文档自注册**：插件激活时自动把 SKILL.md 写入 `~/.dsh/skills/dsh-pubmed/`（DSH 扫描的技能 root）——纯净安装零手工，升级幂等改写，`SKILL_DOC:false` 可关；Release workflow 修复（secrets-in-if 解析失败 → shell 守卫）。
 - **v0.3.5**（09-01）— **无代理韧性**：网络类失败自动退避重试（1s/3s）+ EBI 降级链（`search_articles` / `convert_ids` / `find_related(cited_by/references)` 自动切 Europe PMC，带 `[via europepmc fallback]` 标记）+ 可行动报错（自动区分"本地代理已挂"vs"目标不可达"）；无代理可用工具 **2/20 → ~13/20**（黑洞窗口期底线；直连窗口期实测 **18/18 全通过**）。
 - **v0.3.4**（09-01）— 显示层补齐：`relations` 的 `ev:` 证据行、`graph_get` 的 evidence-backed edges 汇总、`annotate` 的 `[batches/cacheHits]`；图谱引擎离线压测脚本入库（500 篇 70ms）。
 - **v0.3.3**（09-01）— **关系证据回查**：`relations({evidence:true})` 附支持文献 PMIDs，建图 curated 边默认带 `evidencePmids`（可关）；annotate 自动分批（>100）+ 会话级缓存统一；建图探测类型优先（Disease>Chemical>Gene，可配置）；修复自环边 / 占位 ID / mermaid classDef；`graph_add({dryRun})` 预览（`extract_keywords` 废弃）；nlp.js 懒加载降级。

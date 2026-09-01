@@ -49,13 +49,19 @@ Many users have no proxy — from v0.3.5 the plugin's resilience design keeps it
 - **Live-verified (09-01, no-proxy direct)**: **18/18 tools passed** (20/20 fully usable during open windows) — dual-source search, DOI round-trip, cited_by network, 40k-char full text, cross-tool cache hit (`cacheHits: 1`, zero network reuse), `evidencePmids` evidence edges, dryRun preview all normal.
 - For 100% stability a proxy is still recommended; self-hosted reverse-proxy users can look forward to `BASE_URL` configuration in v0.4.0 (planned).
 
-## 🧭 Agent routing skill (cross-session)
+## 🧭 Agent routing skill (cross-session, auto-registered)
 
 The bundle ships `skills/dsh-pubmed/SKILL.md`: a 20-tool routing guide for agents
 (entry point by user phrasing, graph-chaining workflow, the three-way search
-boundary, rate-limit notes). Install it into the DSH skills directory (e.g.
-`~/.agents/skills/dsh-pubmed/SKILL.md`) and **fresh sessions** can dispatch the
-three search families and the graph workflow correctly without reading this README.
+boundary, rate-limit notes). **At plugin activation it self-registers into
+`~/.dsh/skills/dsh-pubmed/`** (a scanned DSH skill root) — clean installs need
+zero manual copying; fresh sessions can dispatch the three search families and
+the graph workflow without reading this README.
+
+- Content auto-updates on plugin upgrade (idempotent — written only when changed)
+- Disable: patch config `SKILL_DOC: false` (or env `SKILL_DOC=0`)
+- Uninstalling the plugin leaves the skill file in place (orphan; delete manually)
+- Dynamic mode (`lib/dynamic-wrapper.js`, sandboxed without fs writes) still needs a manual copy to a skill root
 
 ## 📦 Installation
 
@@ -250,6 +256,7 @@ PubTator3 runs on its **own dedicated ~350 ms queue** (its official limit is 3 r
 
 ## 📜 Version history
 
+- **v0.3.6** (09-01) — **Skill doc self-registration**: at plugin activation SKILL.md is written to `~/.dsh/skills/dsh-pubmed/` (a scanned DSH skill root) — clean installs need zero manual copying; idempotent rewrites on upgrade; `SKILL_DOC:false` disables; Release workflow fixed (secrets-in-if parse failure → shell guard).
 - **v0.3.5** (09-01) — **No-proxy resilience**: network-classified failures auto-retry (1s/3s backoff) + Europe PMC fallback chain (`search_articles` / `convert_ids` / `find_related(cited_by/references)` switch to EPM, marked `[via europepmc fallback]`) + actionable errors (dead local proxy vs unreachable host); no-proxy usable tools **2/20 → ~13/20** (blackhole-window floor; open-window live test **18/18 passed**).
 - **v0.3.4** (09-01) — Display parity: `ev:` evidence lines in `relations`, evidence-backed-edges summary in `graph_get`, `[batches/cacheHits]` in `annotate`; offline graph-engine stress script (500 articles in 70 ms).
 - **v0.3.3** (09-01) — **Relation evidence lookup**: `relations({evidence:true})` attaches supporting article PMIDs; built curated edges carry `evidencePmids` by default (configurable); annotate auto-batching (>100) + unified session cache; type-prioritized relation probing (Disease>Chemical>Gene, configurable); fixed self-loop edges / placeholder IDs / mermaid classDef; `graph_add({dryRun})` preview (`extract_keywords` deprecated); lazy-loaded nlp.js.

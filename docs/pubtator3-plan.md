@@ -73,6 +73,7 @@ dsh-pubmed v0.2.1 已集成 PubTator3 的三个点状 API（标注导出 / 实�
 | ✅ P3.7 | 精简合并：`extract_keywords` 废弃 → `graph_add({dryRun:true})` 预览；nlp.js 懒加载降级（compromise 缺失不炸 bundle 加载）；mesh/entity_id 描述互指 | 改 core + nlp | 工具语义更干净、加载更健壮 | 0.25d | ✅ 已完成（v0.3.3） |
 | ✅ P3.8a | **无代理韧性**：网络类失败自动退避重试（1s/3s）+ EBI 降级链（search/convert_ids/find_related → Europe PMC）+ 可行动报错（死代理 vs 不可达）；设计依据见 §7.1 | 改 core | 大陆无代理用户从 2/20 可用工具提升到 ~13/20，瞬时黑洞无感恢复 | 1d | ✅ 已完成（v0.3.5） |
 | P3.8b | `PUBTATOR_BASE_URL` / `EUTILS_BASE_URL` 可配置（自建反代口子；P2 request.cgi 同步受益） | 改 core | 高级用户自建通道 | 0.25d | v0.4.0（随 P2） |
+| ✅ P3.9 | 技能文档自注册：插件激活时把 SKILL.md 写入 `~/.dsh/skills/dsh-pubmed/`（幂等 + 版本感知 + `SKILL_DOC:false` 开关）；发布自动化 workflow（push tag → Release 挂 tgz → NPM_TOKEN 配置后自动 publish） | 改 index.js + 新增 workflow | 纯净安装零手工；发布全自动化 | 0.5d | ✅ 已完成（v0.3.6） |
 | **P2** | **`pubmed_pubtator_annotate_text` 原始文本标注** | 新工具 + transport 扩展 | 独有差异化能力（自有文本入图谱/稿件检查） | 1–1.5d | v0.4.0 |
 
 ---
@@ -301,6 +302,7 @@ register('pubmed_pubtator_annotate_text', '…', {
 | **v0.3.3** | ✅ P1a（evidence 参数改设计）+ P3.2–P3.5 + P3.7（dryRun 合并 / nlp 懒加载） | 全套 10/10 测试过（新增 ~20 断言：evidence/分批/缓存/自环/空ID/优先级/dryRun）；图谱边证据默认开且 `PUBTATOR_EDGE_EVIDENCE:false` 完全向后兼容 |
 | **v0.3.4** | ✅ 显示层补齐（evidence 可见化）+ 压测脚本 | 真机验收：relations ev 行 + graph evidence-backed edges + annotate batches/cacheHits |
 | **v0.3.5** | ✅ P3.8a 无代理韧性（重试 + EBI 降级链 + 可行动报错） | net-resilience-test 13 断言全过；全套 12/12；README 无代理章节（zh/en）；§7.1 实测矩阵入库 |
+| **v0.3.6** | ✅ P3.9 技能自注册 + 发布自动化 workflow | skill-selfreg-test 6 断言全过；push tag 自动出 Release 挂 tgz；NPM_TOKEN 配置后自动 publish |
 | **v0.4.0** | P2（含 transport POST 扩展）+ P3.8b BASE_URL 可配置 + 移除已废弃的 extract_keywords | 两步异步全链路 + 超时/取消/续取测试通过；§4 P2.8 验收清单全勾 |
 
 ## 6. 测试计划
