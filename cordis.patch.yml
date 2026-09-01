@@ -10,12 +10,18 @@
 # The profile boot then merges THIS patch (a single `insert` of the plugin
 # row) exactly like a manual cordis.patch.yml mount line.
 #
-# The row registers 11 model tools (pubmed_search_articles, pubmed_fetch_articles,
-# pubmed_fetch_fulltext, pubmed_format_citations, pubmed_find_related,
-# pubmed_lookup_mesh, pubmed_lookup_citation, pubmed_convert_ids,
-# pubmed_spell_check, pubmed_europepmc_search, pubmed_europepmc_fetch) on the
-# host `tools` registry, so they are callable in every session that mounts the
-# bundle.
+# The row registers 20 model tools on the host `tools` registry, so they are
+# callable in every session that mounts the bundle:
+#   PubMed/E-utilities: pubmed_search_articles, pubmed_fetch_articles,
+#     pubmed_fetch_fulltext, pubmed_format_citations, pubmed_find_related,
+#     pubmed_lookup_mesh, pubmed_lookup_citation, pubmed_convert_ids,
+#     pubmed_spell_check
+#   Europe PMC: pubmed_europepmc_search, pubmed_europepmc_fetch
+#   PubTator3: pubmed_pubtator_annotate, pubmed_pubtator_entity_id,
+#     pubmed_pubtator_relations, pubmed_pubtator_search
+#   Knowledge graph: pubmed_graph_add, pubmed_graph_get, pubmed_graph_commit,
+#     pubmed_graph_reset
+#   Deprecated (pending removal): pubmed_extract_keywords
 - insert:
     - id: pubmed
       name: 'dsh-pubmed'
