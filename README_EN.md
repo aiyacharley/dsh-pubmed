@@ -103,28 +103,56 @@ Paste either block below **as a whole** into a DSH session; the agent installs a
 
 ## 🧪 Usage examples
 
-```
+```text
+# —— Basic retrieval & literature management ——
 Find reviews about the gut microbiome published in 2023
 → pubmed_search_articles({ query: 'gut microbiome AND 2023[dp]', pubType: 'Review' })
 
 Cite PMID 23193287 in APA and BibTeX
 → pubmed_format_citations({ pmids: ['23193287'], styles: ['apa', 'bibtex'] })
 
-Resolve this DOI to a PMCID
+Resolve this DOI to a PMCID / fetch the full text
 → pubmed_convert_ids({ ids: ['10.1093/nar/gks1195'], idtype: 'doi' })
-
-Fetch the full text of this article
 → pubmed_fetch_fulltext({ pmids: ['23193287'] })
 
-【Build my knowledge graph】
-Round 1: pubmed_fetch_articles({ pmids: [...] }) → pubmed_graph_add({ articles: [...] })   # merge into session graph
-Round 2: pubmed_fetch_articles({ pmids: [...] }) → pubmed_graph_add({ articles: [...] })   # incremental
-Inspect anytime: pubmed_graph_get({ scope: 'session' })        # session graph (not auto-saved to user graph)
-Add to my personal graph: pubmed_graph_commit({ confirm: true }) # explicit opt-in → persisted
-Inspect personal graph: pubmed_graph_get({ scope: 'user' })
-Visualize: pubmed_graph_get({ scope: 'session', format: 'mermaid', maxKeywords: 15 })  # returns mermaid code → wrap in a dsh-ui mermaid fence for a colored card
-Clear: pubmed_graph_reset({ scope: 'session' })   # or scope: 'user'
+# —— PubTator semantic / relation search: the right entry for entity & relation questions ——
+"What can metformin treat? Show me the evidence"
+→ pubmed_pubtator_entity_id({ query: 'metformin', concept: 'chemical' })         # text → @CHEMICAL_Metformin
+→ pubmed_pubtator_search({ relationType: 'treat', e1: '@CHEMICAL_Metformin', e2: 'DISEASE' })
+→ pubmed_pubtator_relations({ e1: '@CHEMICAL_Metformin', e2: 'disease', evidence: true })  # relation skeleton + supporting PMIDs
+
+"Any articles connecting these two concepts?"
+→ pubmed_pubtator_search({ query: '@DISEASE_COVID_19 AND @GENE_PON1' })          # boolean co-occurrence
+
+# —— Knowledge graph (AUTO_GRAPH on by default: fetching auto-merges) ——
+pubmed_fetch_articles({ pmids: [...] })                    # fetch → auto-merge into the session graph
+pubmed_graph_add({ articles: [...], dryRun: true })        # preview what WOULD be added — no mutation
+pubmed_graph_get({ scope: 'session', format: 'mermaid', maxKeywords: 15 })  # NPG-palette visual card
+pubmed_graph_commit({ confirm: true })                     # happy? → persist to your personal graph
+pubmed_graph_reset({ scope: 'session' })                   # start over (or scope: 'user')
 ```
+
+## 🎯 When to use what
+
+| You want to… | Entry point |
+|---|---|
+| Find **literature evidence** for "drug X treats disease Y" (reviews/grants) | `entity_id` → `pubtator_search` relation query |
+| **Survey a field** (trend by year, journal distribution) | `relations` for the skeleton → `search` articles + `facets.year` |
+| **Precise entity** search (synonym/abbreviation-immune: HER2≈ERBB2, IgA gene vs vasculitis) | `entity_id` for the canonical @ID → `search` |
+| **Drug repurposing / mechanism hypothesis** scanning | `relations(e1=@GENE_X, e2=DISEASE)` full spectrum → `search` to drill in |
+| **Novelty check** on an idea (negative results are informative) | `search` boolean `@A AND @B` — single-digit hits = potentially open direction |
+| **Review/project knowledge graph** (multi-round accumulation, visualize, persist) | `fetch_articles` (auto-merges) → `graph_commit` → `graph_get mermaid` |
+| Expand **from one known article** (similar/citing/references) | `find_related` (citation network, complements concept-based expansion) |
+| Add an **audit trail** to graph relation edges | `relations({ evidence: true })` or read `evidencePmids` on built edges |
+| Citations / ID conversion / fuzzy reference lookup / full-text reading | `format_citations` / `convert_ids` / `lookup_citation` / `fetch_fulltext` |
+
+**Choosing between the three searches** (the most common fork):
+
+| Question shape | Use |
+|---|---|
+| Names a specific bioconcept or a drug/gene-disease relation, wants articles | `pubtator_search` (**preferred**: entity-normalized + relation-aware, synonym-immune) |
+| Needs field syntax / date ranges / publication-type filters | `pubmed_search_articles` (the only tool with full PubMed syntax) |
+| PubMed coverage too narrow (preprints/patents/non-journal) | `europepmc_search` → `europepmc_fetch` |
 
 ## 🧬 Workflow
 
@@ -133,13 +161,13 @@ search → fetch articles → auto-graph (AUTO_GRAPH on by default) → incremen
 → visualize → explicit commit for persistence
 ```
 
-1. **Search**: `pubmed_search_articles` (NCBI) or `pubmed_europepmc_search` (Europe PMC).
+1. **Search**: pick by phrasing — entity/relation questions go through `pubmed_pubtator_search` (resolve @IDs first via `pubmed_pubtator_entity_id`); field-syntax queries via `pubmed_search_articles`; preprints etc. via `pubmed_europepmc_search`.
 2. **Fetch**: `pubmed_fetch_articles({pmids})` for structured articles; **AUTO_GRAPH is ON by default** → auto-merges into the session graph.
 3. **Build** (two layers per article, `PUBTATOR` on by default):
    - **Heuristic layer** (always runs): keyword nodes (MeSH weighted + NLP noun phrases) + heuristic relation edges ("X regulates Y").
-   - **PubTator layer**: concept nodes with authoritative IDs (e.g. `IgA[973]`, deduplicated by ID across articles) + curated relation edges (treat/interact/..., weight = publication-count evidence).
+   - **PubTator layer**: concept nodes with authoritative IDs (e.g. `IgA[973]`, deduplicated by ID across articles) + curated relation edges (treat/interact/..., weight = publication-count evidence, **carrying `evidencePmids` supporting articles by default**).
    - **Fallback**: if PubTator fails, it silently degrades to the heuristic layer — graph building never breaks.
-4. **Incremental accumulation**: more retrieval rounds via `pubmed_graph_add` keep merging (in-memory, per-session; shared concepts/keywords across topics converge automatically).
+4. **Incremental accumulation**: more retrieval rounds keep merging (in-memory, per-session; shared concepts/keywords across topics converge automatically); unsure? preview first with `graph_add({dryRun:true})`.
 5. **Visualize**: `pubmed_graph_get({format:'mermaid'})` → NPG-palette card (red=articles / green=keywords / deep-blue=concepts / red arrows=relations).
 6. **Persist**: `pubmed_graph_commit` explicitly merges into your personal user graph (`~/.dsh/dsh-pubmed-graph.json`, persists across sessions).
 7. **Manage**: `pubmed_graph_get({scope:'user'})` to retrieve, `pubmed_graph_reset` to clear.
@@ -173,7 +201,7 @@ DSH is launched):
 ### 🧬 Concept-graph notes
 
 - Nodes come in three kinds: **articles** (red), **keywords** (green, heuristic/MeSH), **concepts** (deep blue, PubTator3 entities with authoritative IDs such as `IgA[973]`, `human[9606]`, deduplicated by ID across articles).
-- Edges: article↔keyword/concept (co-occurrence), heuristic relations (red arrows, "X regulates Y"), curated concept relations (red arrows, treat/cause/interact/... with publication-count evidence).
+- Edges: article↔keyword/concept (co-occurrence), heuristic relations (red arrows, "X regulates Y"), curated concept relations (red arrows, treat/cause/interact/... with publication-count evidence and `evidencePmids` supporting articles).
 - `pubmed_graph_get({ format:'mermaid' })` renders an NPG-palette card. PubTator is the primary path with heuristic fallback — any failure degrades gracefully without breaking graph building.
 
 Without an API key the plugin serializes requests through a global ~350 ms queue

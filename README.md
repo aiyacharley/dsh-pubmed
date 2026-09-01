@@ -96,28 +96,56 @@ dsh plugin --profile web add dsh-pubmed@latest              # 从 npm 安装（�
 
 ## 🧪 用法示例
 
-```
+```text
+# —— 基础检索与文献管理 ——
 搜一下 2023 年 gut microbiome 的综述
 → pubmed_search_articles({ query: 'gut microbiome AND 2023[dp]', pubType: 'Review' })
 
 把这篇 PMID 23193287 按 APA 和 BibTeX 给我引用
 → pubmed_format_citations({ pmids: ['23193287'], styles: ['apa', 'bibtex'] })
 
-查这个 DOI 对应的 PMCID
+查这个 DOI 对应的 PMCID / 看这篇文章的全文
 → pubmed_convert_ids({ ids: ['10.1093/nar/gks1195'], idtype: 'doi' })
-
-看这篇文章的全文
 → pubmed_fetch_fulltext({ pmids: ['23193287'] })
 
-【构建我的知识图谱】
-第 1 轮：pubmed_fetch_articles({ pmids: [...] }) → pubmed_graph_add({ articles: [...] })   # 并入会话图谱
-第 2 轮：pubmed_fetch_articles({ pmids: [...] }) → pubmed_graph_add({ articles: [...] })   # 增量补充
-随时查看：pubmed_graph_get({ scope: 'session' })          # 会话图谱（默认不写入用户图谱）
-想并入个人图谱：pubmed_graph_commit({ confirm: true })    # 显式提交 → 持久化到用户图谱
-查看个人图谱：pubmed_graph_get({ scope: 'user' })
-可视化：pubmed_graph_get({ scope: 'session', format: 'mermaid', maxKeywords: 15 })  # 返回 mermaid 代码 → 包进 dsh-ui mermaid 围栏即得彩色卡片
-清空：pubmed_graph_reset({ scope: 'session' })  # 或 scope: 'user'
+# —— PubTator 语义/关系检索：实体与关系类问题的正确入口 ——
+"二甲双胍能治什么病？给我证据文献"
+→ pubmed_pubtator_entity_id({ query: 'metformin', concept: 'chemical' })        # 文本 → @CHEMICAL_Metformin
+→ pubmed_pubtator_search({ relationType: 'treat', e1: '@CHEMICAL_Metformin', e2: 'DISEASE' })
+→ pubmed_pubtator_relations({ e1: '@CHEMICAL_Metformin', e2: 'disease', evidence: true })  # 关系骨架，每条附支持文献 PMIDs
+
+"这两个概念之间有没有关联的文章？"
+→ pubmed_pubtator_search({ query: '@DISEASE_COVID_19 AND @GENE_PON1' })         # 布尔共现
+
+# —— 知识图谱（AUTO_GRAPH 默认开：fetch 即自动入图）——
+pubmed_fetch_articles({ pmids: [...] })                   # 取文章 → 自动并入会话图谱
+pubmed_graph_add({ articles: [...], dryRun: true })       # 只想预览会新增什么？不落盘
+pubmed_graph_get({ scope: 'session', format: 'mermaid', maxKeywords: 15 })  # NPG 配色可视化卡片
+pubmed_graph_commit({ confirm: true })                    # 满意了 → 显式持久化到个人图谱（跨会话保留）
+pubmed_graph_reset({ scope: 'session' })                  # 清空重来（或 scope: 'user'）
 ```
+
+## 🎯 适用场景
+
+| 你想做什么 | 推荐入口 |
+|---|---|
+| 给"某药治疗某病"找**文献证据**（写综述/标书） | `entity_id` 解析 @ID → `pubtator_search` 关系式 |
+| 某方向**现状速览**（研究热度走势、期刊分布） | `relations` 看关系骨架 → `search` 读文章 + `facets.year` 看年份分布 |
+| **精确实体**检索（同义词/缩写歧义免疫，如 HER2≈ERBB2、IgA 基因 vs 血管炎） | `entity_id` 拿规范 @ID → `search` 实体检索 |
+| **药物重定位 / 机制假设**扫描 | `relations(e1=@GENE_X, e2=DISEASE)` 看全谱关联 → `search` 钻取证据文章 |
+| **检验选题新颖性**（负结果也有价值） | `search` 布尔组合 `@A AND @B`——命中个位数 = 可能是空白方向 |
+| **综述/项目知识图谱**（多轮文献累积、可视化、持久化） | `fetch_articles`（自动入图）多轮 → `graph_commit` → `graph_get mermaid` |
+| 从一篇文章**顺藤摸瓜**（相似/被引/参考文献） | `find_related`（引文网络，与概念级扩图互补） |
+| 给图谱里的关系边**补审计证据** | `relations({ evidence: true })` 或直接看建图边的 `evidencePmids` |
+| 引用格式 / ID 互换 / 残缺引文定位 / 全文精读 | `format_citations` / `convert_ids` / `lookup_citation` / `fetch_fulltext` |
+
+**三类搜索怎么选**（最常见的分岔口）：
+
+| 问题形态 | 用哪个 |
+|---|---|
+| 提到具体生物实体或药-病关系，要文献 | `pubtator_search`（**首选**：实体归一化 + 关系语义，同义词噪音免疫） |
+| 需要字段语法/日期范围/出版类型过滤 | `pubmed_search_articles`（唯一支持完整 PubMed 语法） |
+| PubMed 覆盖不足（预印本/专利/非期刊） | `europepmc_search` → `europepmc_fetch` |
 
 ## 🧬 工作流
 
@@ -125,13 +153,14 @@ dsh plugin --profile web add dsh-pubmed@latest              # 从 npm 安装（�
 检索 → 取文章 → 自动建图（AUTO_GRAPH 默认开）→ 多轮增量累积 → 可视化 → 显式 commit 持久化
 ```
 
-1. **检索**：`pubmed_search_articles`（NCBI）或 `pubmed_europepmc_search`（Europe PMC）。
+1. **检索**：按话术三选一——实体/关系类问题走 `pubmed_pubtator_search`（先 `pubmed_pubtator_entity_id` 解析 @ID）；
+   字段语法查询走 `pubmed_search_articles`；预印本等走 `pubmed_europepmc_search`。
 2. **取文章**：`pubmed_fetch_articles({pmids})` 拿结构化文章；**AUTO_GRAPH 默认开** → 自动并入会话图谱。
 3. **建图**（每篇双层，`PUBTATOR` 默认开）：
    - **启发式层**（永远跑）：关键词节点（MeSH 加权 + NLP 名词短语）+ 启发式关系边（"X 调控 Y"）。
-   - **PubTator 层**：concept 节点（带权威 ID，如 `IgA[973]`，按 ID 跨文章去重）+ curated 关系边（treat/interact/...，weight=publications 证据）。
+   - **PubTator 层**：concept 节点（带权威 ID，如 `IgA[973]`，按 ID 跨文章去重）+ curated 关系边（treat/interact/...，weight=publications 证据数，**默认带 `evidencePmids` 支持文献**）。
    - **兜底**：PubTator 失败 → 静默降级为纯启发式层，不中断建图。
-4. **增量累积**：多轮检索 `pubmed_graph_add` 不断并入（内存、按会话隔离，跨主题自动汇聚）。
+4. **增量累积**：多轮检索不断并入（内存、按会话隔离，跨主题自动汇聚）；拿不准先 `graph_add({dryRun:true})` 预览。
 5. **可视化**：`pubmed_graph_get({format:'mermaid'})` → NPG 配色卡片（红=文章 / 绿=关键词 / 深蓝=concept / 红箭头=关系）。
 6. **持久化**：`pubmed_graph_commit` 显式并入用户图谱（`~/.dsh/dsh-pubmed-graph.json`，跨会话保留）。
 7. **管理**：`pubmed_graph_get({scope:'user'})` 取回，`pubmed_graph_reset` 清空。
@@ -164,7 +193,7 @@ bundle 运行时无需配置即可使用。可选配置项（**推荐写进 prof
 ### 🧬 概念图谱说明
 
 - 图谱节点分三类：**文章**（红）、**关键词**（绿，启发式词频/MeSH）、**concept**（深蓝，PubTator3 实体，带权威概念 ID 如 `IgA[973]`、`human[9606]`，按 ID 跨文章去重）。
-- 边：文章↔关键词/概念（共现）、启发式关系（红箭头，X 调控 Y）、curated 概念关系（红箭头，treat/cause/interact...，带 publications 证据数）。
+- 边：文章↔关键词/概念（共现）、启发式关系（红箭头，X 调控 Y）、curated 概念关系（红箭头，treat/cause/interact...，带 publications 证据数与 `evidencePmids` 支持文献）。
 - `pubmed_graph_get({ format:'mermaid' })` 生成 NPG 配色的卡片；PubTator 主路径 + 启发式兜底，任何失败不中断建图。
 
 无 API key 时插件内置**全局 ~350ms 请求队列**（≈2.8 req/s，低于 NCBI 3 req/s）；配置 `NCBI_API_KEY`
