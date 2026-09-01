@@ -15,8 +15,8 @@ total, talking directly to NCBI E-utilities, Europe PMC REST and PubTator3. No M
 
 | Tool | Description |
 |---|---|
-| `pubmed_search_articles` | Full PubMed search (boolean / field / date / sort / paging / summaries) |
-| `pubmed_fetch_articles` | Structured articles by PMID (authors / abstract / MeSH / grants / DOI / PMCID) |
+| `pubmed_search_articles` | Full PubMed search (boolean / field / date syntax; **keyword-level** — prefer `pubtator_search` for entity & relation questions) |
+| `pubmed_fetch_articles` | Structured articles by PMID (authors / abstract / MeSH / grants / DOI / PMCID; with AUTO_GRAPH on by default results **auto-merge into the session graph** — no separate graph_add) |
 | `pubmed_fetch_fulltext` | PMC full text (JATS → sectioned body, best-effort) |
 | `pubmed_format_citations` | APA 7 / MLA 9 / BibTeX / RIS / Vancouver citations |
 | `pubmed_find_related` | Similar / citing / references (ELink + ESummary) |
@@ -24,9 +24,9 @@ total, talking directly to NCBI E-utilities, Europe PMC REST and PubTator3. No M
 | `pubmed_lookup_citation` | Partial citation → PMID (ECitMatch) |
 | `pubmed_convert_ids` | DOI / PMID / PMCID conversion |
 | `pubmed_spell_check` | Query spelling correction (ESpell) |
-| `pubmed_europepmc_search` | Europe PMC search (MED/PMC/PPR/PAT/AGR, cursor paging) |
+| `pubmed_europepmc_search` | Europe PMC search (MED/PMC/PPR/PAT/AGR, cursor paging; use when PubMed is too narrow — semantic/relation queries go to `pubtator_search`) |
 | `pubmed_europepmc_fetch` | Complete Europe PMC record (untruncated abstract) |
-| `pubmed_pubtator_annotate` | PubTator3 entity annotations (BioC JSON; Gene/Chemical/Disease/Mutation/CellLine/Species with concept IDs; `full:true` for full text) |
+| `pubmed_pubtator_annotate` | PubTator3 entity annotations (BioC JSON; Gene/Chemical/Disease/Mutation/CellLine/Species with concept IDs; accepts **PMIDs or PMCIDs** (mutually exclusive, PMC prefix normalized); `full:true` for full text) |
 | `pubmed_pubtator_entity_id` | Resolve a free-text bioconcept to concept IDs (autocomplete; e.g. IgA → ncbi_gene:973) |
 | `pubmed_pubtator_relations` | Curated bio-relations between concepts (treat/cause/inhibit/... with publication-count evidence) |
 | `pubmed_pubtator_search` | PubTator3 **semantic / relation search**: free text / @entity IDs / boolean combos / `relations:type\|entityA\|entityB` (paginated, with year/journal/type facet stats; resolve @IDs via entity_id, feed hits into graph_add) |
@@ -35,6 +35,14 @@ total, talking directly to NCBI E-utilities, Europe PMC REST and PubTator3. No M
 | `pubmed_graph_get` | Get the session / user graph (`format:'json'` nodes+edges, or `format:'mermaid'` colored flowchart card, NPG palette) |
 | `pubmed_graph_commit` | **Explicitly** merge the session graph into your persistent personal user graph (not automatic) |
 | `pubmed_graph_reset` | Clear the session graph (or the user graph) |
+
+## 🧭 Agent routing skill (cross-session)
+
+The bundle ships `skills/dsh-pubmed/SKILL.md`: a 20-tool routing guide for agents
+(entry point by user phrasing, graph-chaining workflow, the three-way search
+boundary, rate-limit notes). Install it into the DSH skills directory (e.g.
+`~/.agents/skills/dsh-pubmed/SKILL.md`) and **fresh sessions** can dispatch the
+three search families and the graph workflow correctly without reading this README.
 
 ## 📦 Installation
 

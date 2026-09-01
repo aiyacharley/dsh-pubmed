@@ -16,8 +16,8 @@
 
 | 工具 | 说明 |
 |---|---|
-| `pubmed_search_articles` | PubMed 全文检索（布尔/字段/日期/排序/分页/摘要） |
-| `pubmed_fetch_articles` | 按 PMID 获取结构化文章（作者/摘要/MeSH/基金/DOI/PMCID） |
+| `pubmed_search_articles` | PubMed 检索（完整布尔/字段/日期语法；**关键词级**——实体与关系类问题优先 `pubtator_search`） |
+| `pubmed_fetch_articles` | 按 PMID 获取结构化文章（作者/摘要/MeSH/基金/DOI/PMCID；AUTO_GRAPH 默认开启时**自动并入会话图谱**，无需再 graph_add） |
 | `pubmed_fetch_fulltext` | PMC 全文（JATS → 分节正文，best-effort） |
 | `pubmed_format_citations` | APA 7 / MLA 9 / BibTeX / RIS / Vancouver 引用 |
 | `pubmed_find_related` | 相似文献 / 引用 / 参考文献（ELink + ESummary） |
@@ -25,9 +25,9 @@
 | `pubmed_lookup_citation` | 部分引文 → PMID（ECitMatch） |
 | `pubmed_convert_ids` | DOI / PMID / PMCID 互转 |
 | `pubmed_spell_check` | 检索词拼写纠正（ESpell） |
-| `pubmed_europepmc_search` | Europe PMC 检索（MED/PMC/PPR/PAT/AGR，游标分页） |
+| `pubmed_europepmc_search` | Europe PMC 检索（MED/PMC/PPR/PAT/AGR，游标分页；PubMed 覆盖不足时用，语义/关系查询走 `pubtator_search`） |
 | `pubmed_europepmc_fetch` | Europe PMC 单条完整记录（含未截断摘要） |
-| `pubmed_pubtator_annotate` | PubTator3 实体标注（BioC JSON，Gene/Chemical/Disease/Mutation/CellLine/Species，带概念 ID；可 `full:true` 全文） |
+| `pubmed_pubtator_annotate` | PubTator3 实体标注（BioC JSON，Gene/Chemical/Disease/Mutation/CellLine/Species，带概念 ID；收 **PMID 或 PMCID**（互斥，自动补 PMC 前缀）；可 `full:true` 全文） |
 | `pubmed_pubtator_entity_id` | 自由文本生物概念 → 概念 ID（autocomplete，如 IgA → ncbi_gene:973） |
 | `pubmed_pubtator_relations` | 概念间 curated 关系（treat/cause/inhibit/...，带 publications 证据数） |
 | `pubmed_pubtator_search` | PubTator3 **语义/关系搜索**：自由文本 / @实体 ID / 布尔组合 / `relations:类型\|实体A\|实体B`（支持分页与年份/期刊/类型 facets 统计；实体 A 可来自 entity_id，命中 PMIDs 可喂给 graph_add） |
@@ -170,6 +170,13 @@ bundle 运行时无需配置即可使用。可选配置项（**推荐写进 prof
 无 API key 时插件内置**全局 ~350ms 请求队列**（≈2.8 req/s，低于 NCBI 3 req/s）；配置 `NCBI_API_KEY`
 后 E-utilities 队列自动提速至 **~120ms（≈8 req/s，低于 10 req/s 上限）**。并行调用也会串行化，避免 429。
 PubTator3 走**独立的 ~350ms 专用队列**（其官方限额为 3 req/s，与 NCBI API key 无关），不会随 API key 提速。
+
+## 🧭 Agent 路由技能（跨会话）
+
+随包附带 `skills/dsh-pubmed/SKILL.md`：一份给 agent 看的 20 工具路由指南（按话术选入口、
+建图链路组合流、三类搜索边界、限速常识）。把它安装到 DSH 的技能目录（如
+`~/.agents/skills/dsh-pubmed/SKILL.md`）后，**新会话**的 agent 无需阅读本文档即可正确调度
+三套检索与建图工具。
 
 ## ✅ 要求
 
