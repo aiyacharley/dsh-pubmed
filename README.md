@@ -27,12 +27,12 @@
 | `pubmed_spell_check` | 检索词拼写纠正（ESpell） |
 | `pubmed_europepmc_search` | Europe PMC 检索（MED/PMC/PPR/PAT/AGR，游标分页；PubMed 覆盖不足时用，语义/关系查询走 `pubtator_search`） |
 | `pubmed_europepmc_fetch` | Europe PMC 单条完整记录（含未截断摘要） |
-| `pubmed_pubtator_annotate` | PubTator3 实体标注（BioC JSON，Gene/Chemical/Disease/Mutation/CellLine/Species，带概念 ID；收 **PMID 或 PMCID**（互斥，自动补 PMC 前缀）；可 `full:true` 全文） |
+| `pubmed_pubtator_annotate` | PubTator3 实体标注（BioC JSON，Gene/Chemical/Disease/Mutation/CellLine/Species，带概念 ID；收 **PMID 或 PMCID**（互斥，自动补 PMC 前缀）；可 `full:true` 全文；**>100 自动分批**，会话级缓存去重） |
 | `pubmed_pubtator_entity_id` | 自由文本生物概念 → 概念 ID（autocomplete，如 IgA → ncbi_gene:973） |
-| `pubmed_pubtator_relations` | 概念间 curated 关系（treat/cause/inhibit/...，带 publications 证据数） |
+| `pubmed_pubtator_relations` | 概念间 curated 关系（treat/cause/inhibit/...，带 publications 证据数；`evidence:true` 可为前几条关系附带**支持文献 PMIDs**） |
 | `pubmed_pubtator_search` | PubTator3 **语义/关系搜索**：自由文本 / @实体 ID / 布尔组合 / `relations:类型\|实体A\|实体B`（支持分页与年份/期刊/类型 facets 统计；实体 A 可来自 entity_id，命中 PMIDs 可喂给 graph_add） |
-| `pubmed_extract_keywords` | 提取关键词（MeSH 加权 + NLP 名词短语/词频，含可选 compromise NLP） |
-| `pubmed_graph_add` | 把一轮检索文章**增量并入当前会话知识图谱**（内存、按会话隔离；含启发式关系边 + PubTator 概念节点与 curated 关系） |
+| `pubmed_extract_keywords` | ⚠️ **已废弃**——用 `pubmed_graph_add({ dryRun: true })` 预览提取结果（下个版本移除） |
+| `pubmed_graph_add` | 把一轮检索文章**增量并入当前会话知识图谱**（内存、按会话隔离；含启发式关系边 + PubTator 概念节点与 curated 关系；关系边默认带 `evidencePmids` 证据文献，`PUBTATOR_EDGE_EVIDENCE:false` 可关；`dryRun:true` 只预览不落盘） |
 | `pubmed_graph_get` | 查询会话 / 用户知识图谱（`format:'json'` 节点+边，或 `format:'mermaid'` 彩色流程图卡片，NPG 配色） |
 | `pubmed_graph_commit` | **显式**把会话图谱并入持久化的个人用户图谱（默认不自动加入） |
 | `pubmed_graph_reset` | 清空会话图谱（或用户图谱） |

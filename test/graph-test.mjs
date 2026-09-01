@@ -56,6 +56,13 @@ const add3 = await tools.pubmed_graph_add.execute({ articles: [a3] }, S('sA'))
 console.log('add[a3] -> nodes=' + add3.stats.nodeCount + ' edges=' + add3.stats.edgeCount)
 if (!(add3.stats.nodeCount > add2.stats.nodeCount && add2.stats.nodeCount > add1.stats.nodeCount)) { console.log('INCREMENT FAIL'); process.exit(1) }
 
+// 2b) dryRun previews without mutating the session graph
+const nodesBefore = (await tools.pubmed_graph_get.execute({ scope: 'session' }, S('sA'))).session.stats.nodeCount
+const dr = await tools.pubmed_graph_add.execute({ articles: [{ pmid: '99999999', title: 'Dry run synthetic article about proteomics biomarkers', abstractText: 'Proteomics biomarkers drive discovery.' }], dryRun: true }, S('sA'))
+const nodesAfter = (await tools.pubmed_graph_get.execute({ scope: 'session' }, S('sA'))).session.stats.nodeCount
+console.log('dryRun -> wouldAddNodes=' + dr.wouldAddNodes + ' wouldAddEdges=' + dr.wouldAddEdges + ' nodes ' + nodesBefore + '->' + nodesAfter)
+if (!(dr.dryRun === true && dr.wouldAddNodes > 0 && nodesAfter === nodesBefore)) { console.log('DRYRUN FAIL'); process.exit(1) }
+
 // 3) session isolation (session B empty)
 const isoB = await tools.pubmed_graph_get.execute({ scope: 'session' }, S('sB'))
 console.log('session B nodes -> ' + isoB.session.stats.nodeCount + ' (expect 0)')

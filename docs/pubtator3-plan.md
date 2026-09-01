@@ -65,11 +65,12 @@ dsh-pubmed v0.2.1 已集成 PubTator3 的三个点状 API（标注导出 / 实�
 | ✅ **P0** | **`pubmed_pubtator_search` 语义/关系搜索** | 新工具 | 补齐旗舰能力，打通建图闭环 | 0.5–1d | ✅ 已完成（v0.3.0） |
 | P1b | annotate 支持 PMCID（`pmc_export`） | 扩展现有工具 | 全文链路补口子 | 0.25d | ✅ 已完成（v0.3.2） |
 | ✅ P3.6 | 工具描述路由语句（7 个工具）+ 随包 `skills/dsh-pubmed/SKILL.md` | 改 core + 新增 skills/ | 新会话 agent 正确调度三套检索与建图工具 | 0.25d | ✅ 已完成（v0.3.2） |
-| P1a | `pubmed_pubtator_relation_evidence` + 图谱边证据 | 新工具 + 改建图 | 边从"计数"变"可审计" | 0.5d | v0.3.3 |
-| P3.2 | annotate >100 PMID 自动分批 | 改 core | 大批量不丢数据 | 0.25d | v0.3.3 |
-| P3.3 | 会话级 annotate 缓存统一 | 改 core | 同 PMID 不重复拉取 | 0.25d | v0.3.3 |
-| P3.4 | 建图关系探测策略化（类型优先 + 可配置） | 改 core | 高价值边更全 | 0.25d | v0.3.3 |
-| P3.5 | 真机验证发现的 3 个存量小瑕疵（自环边 / 空 ID 概念 / mermaid classDef 错位，见 §2.3） | 改 core | 数据质量与渲染正确性 | 0.25d | v0.3.3 |
+| ✅ P1a | ~~新增 relation_evidence 工具~~ → **改设计：`pubtator_relations` 加 `evidence:true`** + 图谱边 evidencePmids | 改 core | 边从"计数"变"可审计"；工具数不膨胀 | 0.5d | ✅ 已完成（v0.3.3） |
+| ✅ P3.2 | annotate >100 PMID 自动分批（100/批 + 上限 500） | 改 core | 大批量不丢数据 | 0.25d | ✅ 已完成（v0.3.3） |
+| ✅ P3.3 | 会话级 annotate 缓存统一（工具与建图共用，键含 full/abs） | 改 core | 同 PMID 不重复拉取 | 0.25d | ✅ 已完成（v0.3.3） |
+| ✅ P3.4 | 建图关系探测策略化（Disease>Chemical>Gene>Variant 类型优先 + PUBTATOR_RELATION_PROBE 可配置）；超时常量化 | 改 core | 高价值边更全 | 0.25d | ✅ 已完成（v0.3.3） |
+| ✅ P3.5 | 真机验证发现的 3 个存量小瑕疵（自环边 / 空 ID 概念 / mermaid classDef 错位，见 §2.3） | 改 core | 数据质量与渲染正确性 | 0.25d | ✅ 已完成（v0.3.3） |
+| ✅ P3.7 | 精简合并：`extract_keywords` 废弃 → `graph_add({dryRun:true})` 预览；nlp.js 懒加载降级（compromise 缺失不炸 bundle 加载）；mesh/entity_id 描述互指 | 改 core + nlp | 工具语义更干净、加载更健壮 | 0.25d | ✅ 已完成（v0.3.3） |
 | **P2** | **`pubmed_pubtator_annotate_text` 原始文本标注** | 新工具 + transport 扩展 | 独有差异化能力（自有文本入图谱/稿件检查） | 1–1.5d | v0.4.0 |
 
 ---
@@ -229,8 +230,8 @@ register('pubmed_pubtator_annotate_text', '…', {
 | **v0.3.0** | ✅ P3.1 + P0（P1b 移至 v0.3.2） | 新工具冒烟通过（20/20 断言）；README/README_EN 工具表更新（19→20） |
 | **v0.3.1** | ✅ P0 真机验收完成 + schema 热修（query 可选） | 真机闭环（关系搜索→建图 +182 节点）与限速抽查通过；21/21 断言 |
 | **v0.3.2** | ✅ P1b（pmcids）+ P3.6 路由描述与 SKILL.md | B4 测试 7 项全过；README 中英更新；技能文件随包分发 |
-| **v0.3.3** | P1a + P3.2–P3.5 | 图谱边证据可开关且默认向后兼容；pubtator-test 覆盖新路径 |
-| **v0.4.0** | P2（含 transport POST 扩展） | 两步异步全链路 + 超时/取消测试通过 |
+| **v0.3.3** | ✅ P1a（evidence 参数改设计）+ P3.2–P3.5 + P3.7（dryRun 合并 / nlp 懒加载） | 全套 10/10 测试过（新增 ~20 断言：evidence/分批/缓存/自环/空ID/优先级/dryRun）；图谱边证据默认开且 `PUBTATOR_EDGE_EVIDENCE:false` 完全向后兼容 |
+| **v0.4.0** | P2（含 transport POST 扩展）+ 移除已废弃的 extract_keywords | 两步异步全链路 + 超时/取消测试通过 |
 
 ## 6. 测试计划
 

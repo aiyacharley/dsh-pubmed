@@ -10,7 +10,7 @@ description: Routing guide for the dsh-pubmed plugin's 20 PubMed / Europe PMC / 
 | 用户话术特征 | 入口工具 | 理由 |
 |---|---|---|
 | 提到**具体生物实体**（基因/药/病/突变）+ "找文献/证据/进展" | `pubmed_pubtator_entity_id` → `pubmed_pubtator_search` | 实体归一化免疫同义词噪音；关系式可直达"支持某关系"的文章 |
-| "X 和 Y 有什么**关系**"（不要文献） | `pubmed_pubtator_relations` | 全库聚合的 curated 关系边 + publications 证据数 |
+| "X 和 Y 有什么**关系**"（不要文献） | `pubmed_pubtator_relations` | 全库聚合的 curated 关系边 + publications 证据数；`evidence:true` 还能给前几条关系附上支持文献 PMIDs |
 | 关键词**字段限定**查询（[title]/[dp]/日期/pubType） | `pubmed_search_articles` | 唯一支持 PubMed 完整语法的工具 |
 | PubMed **不够广**（预印本/专利/非期刊） | `pubmed_europepmc_search` → `pubmed_europepmc_fetch` | MED/PMC/PPR/PAT/AGR 五源 |
 | 已知 PMID，要**全文/元数据/标注** | `pubmed_fetch_fulltext` / `pubmed_fetch_articles` / `pubmed_pubtator_annotate` | 各取所需；pmcids 也可直接 annotate |
@@ -26,7 +26,7 @@ entity_id（文本→@ID）→ pubtator_search（@ID/关系式→文章）→ fe
 ```
 
 - `pubmed_fetch_articles` 在 AUTO_GRAPH 开启（默认）时**自动并入**会话图谱——不要额外手动 `graph_add`。
-- `pubmed_graph_add` 内部已做关键词提取 + PubTator 概念/关系富集——**不要先调** `pubmed_extract_keywords`。
+- `pubmed_graph_add` 内部已做关键词提取 + PubTator 概念/关系富集——**不要先调** `pubmed_extract_keywords`（已废弃，预览用 `dryRun:true`）。curated 关系边默认带 `evidencePmids` 支持文献（`PUBTATOR_EDGE_EVIDENCE:false` 可关）。
 - 会话图谱累积后 `pubmed_graph_commit` 显式持久化到用户图谱（默认不自动写）。
 - `pubmed_graph_get({ format:'mermaid' })` 可直接渲染为可视化卡片。
 
