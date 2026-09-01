@@ -253,6 +253,7 @@ PubTator3 走**独立的 ~350ms 专用队列**（其官方限额为 3 req/s，�
 
 ## 📜 版本历史
 
+- **v0.3.8**（09-01）— **P4 批次二**：Europe PMC 调用套网络重试层；用户图谱原子写（tmp+rename，防崩溃损坏）；图写入按会话串行化（并发 graph_add / AUTO_GRAPH / commit 不再交错）；search/relations 实体参数 @ 前缀自动归一化；SKILL.md 扩充（20 工具速查表 + 配置项表 + 易错点清单）；npm scripts（`npm test`）+ Release workflow 测试门；无代理实测：并发 graph_add 串行无交错、EPM/search 双通。
 - **v0.3.7**（09-01）— **P0 修复：大规模建图不再超时**：mergeGraph 批量预取（200 篇从 200+ 次 PubTator 调用降到 2 次）+ 探测/证据预算（默认 8 篇/次合并，可配置）+ 富集 150s 死线优雅截断 + `httpGet` 超时真正生效（graph_add 180s / fetch_articles 120s）；修复预取失败污染会话缓存；无代理实测 **18/18 通过**。
 - **v0.3.6**（09-01）— **技能文档自注册**：插件激活时自动把 SKILL.md 写入 `~/.dsh/skills/dsh-pubmed/`（DSH 扫描的技能 root）——纯净安装零手工，升级幂等改写，`SKILL_DOC:false` 可关；Release workflow 修复（secrets-in-if 解析失败 → shell 守卫）。
 - **v0.3.5**（09-01）— **无代理韧性**：网络类失败自动退避重试（1s/3s）+ EBI 降级链（`search_articles` / `convert_ids` / `find_related(cited_by/references)` 自动切 Europe PMC，带 `[via europepmc fallback]` 标记）+ 可行动报错（自动区分"本地代理已挂"vs"目标不可达"）；无代理可用工具 **2/20 → ~13/20**（黑洞窗口期底线；直连窗口期实测 **18/18 全通过**）。
