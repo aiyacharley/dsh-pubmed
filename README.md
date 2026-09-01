@@ -267,7 +267,7 @@ PubTator3 走**独立的 ~350ms 专用队列**（其官方限额为 3 req/s，�
 - **v0.2.0**（08-28）— **个人文献知识图谱引擎**：会话/用户双图谱、增量合并、mermaid NPG 配色可视化；`AUTO_GRAPH` 自动入图；NLP 关键词与 directed 关系边（compromise）；`NCBI_API_KEY` + 自适应限速；patch 行 config 注入。
 - **v0.1.x**（08-27）— 初版：自 [`@cyanheads/pubmed-mcp-server`](https://github.com/cyanheads/pubmed-mcp-server) 移植的 11 个 PubMed 工具（检索 / 元数据 / 全文 / 引用 / MeSH / ID 转换 / 拼写 / Europe PMC）。
 
-> 逐版提交细节见 [git tags](https://github.com/aiyacharley/dsh-pubmed/tags)；PubTator3 增强计划全文见 [`docs/pubtator3-plan.md`](docs/pubtator3-plan.md)。
+> 逐版提交细节见 [git tags](https://github.com/aiyacharley/dsh-pubmed/tags)；PubTator3 增强计划全文见 [`docs/01_pubtator3-plan.md`](docs/01_pubtator3-plan.md)。
 
 ## ✅ 要求
 

@@ -270,7 +270,7 @@ PubTator3 runs on its **own dedicated ~350 ms queue** (its official limit is 3 r
 - **v0.2.0** (08-28) — **Personal literature knowledge-graph engine**: session/user dual graphs, incremental merging, NPG-palette mermaid visualization; `AUTO_GRAPH` auto-merge; NLP keywords & directed relation edges (compromise); `NCBI_API_KEY` + adaptive pacing; config via patch row.
 - **v0.1.x** (08-27) — Initial release: 11 PubMed tools ported from [`@cyanheads/pubmed-mcp-server`](https://github.com/cyanheads/pubmed-mcp-server) (search / metadata / full text / citations / MeSH / ID conversion / spell check / Europe PMC).
 
-> Per-commit details: [git tags](https://github.com/aiyacharley/dsh-pubmed/tags); the full PubTator3 enhancement plan lives in [`docs/pubtator3-plan.md`](docs/pubtator3-plan.md).
+> Per-commit details: [git tags](https://github.com/aiyacharley/dsh-pubmed/tags); the full PubTator3 enhancement plan lives in [`docs/01_pubtator3-plan.md`](docs/01_pubtator3-plan.md).
 
 ## ✅ Requirements
 
