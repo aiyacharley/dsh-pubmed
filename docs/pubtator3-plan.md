@@ -179,39 +179,105 @@ register('pubmed_pubtator_relation_evidence', '…', {
 
 ### P2 · `pubmed_pubtator_annotate_text` 原始文本标注
 
-**端点（两步异步）**：
+#### P2.0 定位与价值（为什么它是收官项）
 
-1. `POST https://www.ncbi.nlm.nih.gov/CBBresearch/Lu/Demo/RESTful/request.cgi`
-   `body: text={文本}&bioconcept={类型}` → 返回 session id
-2. `POST …/retrieve.cgi` `body: id={session}` → 未就绪时返回 **404 + "[Warning] : The Result is not ready"**，需轮询
+前 20 个工具的输入都是**已发表文献的标识符**（PMID/PMCID/关键词）；P2 是唯一以
+**用户自己的文本**为输入的能力。注意它与"以文找文"链路（挑词 → entity_id → search）
+回答的是不同问题，**不可互相替代**：
 
-**前置改造（transport 扩展）**：
+| | 以文找文（现有链路） | 以文解文（P2） |
+|---|---|---|
+| 输入 | 文本的主题（人工挑的关键词） | 文本本身 |
+| 输出 | 别人的相关文章列表 | 文本内**每个实体**：表面形式 + 字符位置 + 权威归一化 ID |
+| 回答 | "和这段研究相似的文章有哪些？" | "我这段话里到底写了什么？规范命名对不对？" |
 
-- [ ] `httpGet` 之外新增 `httpPost(url, formBody, signal, timeoutMs)`，同样支持代理回退
-- [ ] 注入点同步：`lib/index.js` 与 `lib/dynamic-wrapper.js` 两处 deps 均加 `httpPost`
+三个现有链路做不到的点：(1) 6 类实体**穷举**（突变/细胞系/物种靠人眼挑不全）；(2)
+**归一化体检**（如 HER2 → ERBB2[2064]，投稿前命名体检）；(3) **自有文本入图谱**
+（笔记/草稿成为与文献共享同一 concept 体系的节点）。若开工时 ②③ 无真实需求，P2 可顺延——
+它不阻塞任何其他项。
 
-**工具签名（草案）**：
+#### P2.1 API 规格（两步异步，官方唯一 POST 接口）
+
+```
+① 提交：POST https://www.ncbi.nlm.nih.gov/CBBresearch/Lu/Demo/RESTful/request.cgi
+   Content-Type: application/x-www-form-urlencoded
+   body: text={URL编码原文}&bioconcept={类型，逗号分隔或单值——取值范围见 Q2}
+   → 200 返回纯文本 session id（如 538B76EE28D5E2D8FF13）
+
+② 取回：POST …/retrieve.cgi    body: id={session}
+   → 未就绪：HTTP 404 + "[Warning] : The Result is not ready"（正常轮询态，不是错误）
+   → 就绪：HTTP 200 + 标注结果（BioC/pubtator 格式——实测后定，复用 parsePubtatorBiocJson 兼容层）
+   注意：服务端无取消 API；session 结果的保存时长（TTL）未知 → 见 Q6
+```
+
+#### P2.2 前置改造（transport 扩展）
+
+- [ ] `lib/index.js`：新增 `httpPost(url, formBody, signal, timeoutMs)`——与 httpGet 同级的
+      direct-first + 代理回退结构；`Content-Type: application/x-www-form-urlencoded`
+- [ ] `lib/dynamic-wrapper.js`：curl 版 `httpPost`（`curl -X POST -d ...`），注入点同步
+- [ ] 两处 deps 注入均加 `httpPost`；core 内 `httpGet`/`httpPost` 并存，互不影响
+- [ ] 回归：dynamic 模式现有 20 工具不受影响（GET 路径零改动）
+
+#### P2.3 工具签名（定稿草案）
 
 ```js
 register('pubmed_pubtator_annotate_text', '…', {
-  text: { type: 'string', required: true, description: '待标注原文（建议 ≤ 50k 字符）' },
-  bioconcept: { type: 'array', items: { type: 'string', enum: ['Gene','Disease','Chemical','Variant','Species','CellLine'] }, description: '标注的实体类型，默认全部' },
-  timeoutMs: { type: 'integer', default: 60000, description: '轮询总时长上限' },
+  text:       { type: 'string', required: true, description: '待标注原文（长度上限见 Q5，实测后写死）' },
+  bioconcept: { type: 'array', items: { type: 'string', enum: ['Gene','Disease','Chemical','Variant','Species','CellLine'] }, description: '要标注的实体类型；缺省=全部（取值范围以 Q2 实测为准）' },
+  timeoutMs:  { type: 'integer', default: 60000, description: '轮询总时长上限' },
+  sessionId:  { type: 'string', description: '此前返回的 session id——传入则直接恢复轮询，不重新提交（超时续取）' },
 })
 ```
 
-**实现要点**：
+返回（两种状态都含 `sessionId` 供续取）：
 
-- [ ] 轮询退避：1s 起步、指数退避（×1.5，上限 5s），到 `timeoutMs` 报"标注未完成，session=xxx 可稍后重试"
+```js
+{ sessionId, status: 'done',  textLength, entityCount, byType, entities: [{ type, id, name, surface, offset, length }] }
+{ sessionId, status: 'timeout', note: 'result not ready — retry with sessionId' }
+```
+
+#### P2.4 轮询器设计
+
+- [ ] 间隔：1s 起步 ×1.5 指数退避，单次上限 5s；总预算 `timeoutMs`（内部常量 `PT_TEXT_POLL_*`）
+- [ ] 404+Warning 视为"未就绪"继续轮询；其他 4xx/5xx 直接抛错（带 session id）
+- [ ] `exec.signal` 取消：立刻停止并返回 `{ status: 'aborted', sessionId }`（服务端继续算，客户端放手）
+- [ ] 超时：返回 `status:'timeout'` + sessionId（不抛异常——可恢复语义）
+
+#### P2.5 结果解析与 formatter（v0.3.4 教训先行）
+
+- [ ] 解析复用 `parsePubtatorBiocJson` 兼容层，实体抽取复用 `docEntities`；字段全量 lossless
+- [ ] **formatter 第一天就展示全部新字段**（v0.3.4 教训）：按类型计数 + 每类前 5 个实体
+      （`surface [type:id] @offset`）+ `sessionId` 永远显示 + textLength
+- [ ] 会话缓存：以 `text:` + 内容哈希为 key 存入 `corePubtatorCache` 之外的独立 Map（文本大，
+      避免挤占 PMID 缓存）
+
+#### P2.6 图谱集成（自有文本入图，Option A：最小改动）
+
+- [ ] `graph_add` 的文章对象新增可选字段 `annotations`（来自 annotate_text 的实体数组）
+- [ ] `defaultExtractPubtator(a)` 开头加一条：`if (Array.isArray(a.annotations)) return 去重后的 annotations`
+      ——不命中网络，直接用预附标注
+- [ ] 无 pmid 文章走既有 `'article:t:' + title` 节点路径（mergeGraph 已支持），文章概念边照常生成
+- [ ] 明确不做：独立 `graph_add_from_text` 工具（违背合并原则，见 v0.3.3 复盘）
+
+#### P2.7 实现要点
+
+- [ ] 轮询退避：1s 起步、指数退避（×1.5，上限 5s），到 `timeoutMs` 返回 timeout 状态（含 session id 可续取）
 - [ ] 尊重 `exec.signal` 取消；客户端放弃即结束（服务端无取消 API）
 - [ ] 结果沿用 `parsePubtatorBiocJson` 兼容解析（返回格式实测后定）
-- [ ] 复用 P3.3 的会话缓存（文本哈希为 key）
+- [ ] 文本级缓存（内容哈希为 key，独立 Map，不与 PMID 缓存混用）
+- [ ] `request.cgi` 域名（CBBresearch/Lu/Demo）不在 pubtator3-api 限速域内，但轮询间隔 ≥1s 已足够保守；
+      POST 不占用 `pubtatorScheduled` 队列（与 3 req/s 上限分属不同服务）
 
-**验收标准**：
+#### P2.8 验收标准
 
-- [ ] 提交→轮询→取回全链路成功（真实 API 冒烟）
-- [ ] 轮询超时给出可恢复的错误（含 session id）
+- [ ] 提交→轮询→取回全链路成功（真实 API 冒烟，样例用一段含基因/疾病/化学物的真实摘要）
+- [ ] 轮询超时返回 timeout 状态（含 session id），随后仅凭 sessionId 成功续取
 - [ ] signal 取消后不留挂起 promise
+- [ ] Q2 实测：6 类 bioconcept 逐类提交验证，修正 enum
+- [ ] Q5 实测：50k / 200k 字符各一次，确定长度上限并写进 schema description
+- [ ] graph_add 带 annotations 的自有文本成功入图（concept 节点 + article-concept 边）
+- [ ] formatter 展示全部新字段（v0.3.4 教训验收项）
+- [ ] dynamic 模式回归通过（httpPost 注入后 GET 工具零回归）
 
 ### P3 · 打磨项
 
@@ -231,7 +297,7 @@ register('pubmed_pubtator_annotate_text', '…', {
 | **v0.3.1** | ✅ P0 真机验收完成 + schema 热修（query 可选） | 真机闭环（关系搜索→建图 +182 节点）与限速抽查通过；21/21 断言 |
 | **v0.3.2** | ✅ P1b（pmcids）+ P3.6 路由描述与 SKILL.md | B4 测试 7 项全过；README 中英更新；技能文件随包分发 |
 | **v0.3.3** | ✅ P1a（evidence 参数改设计）+ P3.2–P3.5 + P3.7（dryRun 合并 / nlp 懒加载） | 全套 10/10 测试过（新增 ~20 断言：evidence/分批/缓存/自环/空ID/优先级/dryRun）；图谱边证据默认开且 `PUBTATOR_EDGE_EVIDENCE:false` 完全向后兼容 |
-| **v0.4.0** | P2（含 transport POST 扩展）+ 移除已废弃的 extract_keywords | 两步异步全链路 + 超时/取消测试通过 |
+| **v0.4.0** | P2（含 transport POST 扩展）+ 移除已废弃的 extract_keywords | 两步异步全链路 + 超时/取消/续取测试通过；§4 P2.8 验收清单全勾 |
 
 ## 6. 测试计划
 
@@ -239,12 +305,13 @@ register('pubmed_pubtator_annotate_text', '…', {
 
 | 文件 | 覆盖 |
 |---|---|
-| `pubtator-search-test.mjs`（新） | 四种查询形态、分页、便捷参数拼装、错误输入 |
-| `pubtator-test.mjs`（扩） | pmcids 路由、>100 分批、互斥校验 |
-| `pubtator-text-test.mjs`（新，v0.4.0） | 两步异步、轮询超时、取消 |
-| `graph-test.mjs`（扩） | relation 边 evidencePmids、`PUBTATOR_EDGE_EVIDENCE:false` 兼容 |
-| `d-fallback-test.mjs`（扩） | PubTator 全挂时新工具报错清晰、建图静默降级不中断 |
-| `autograph-test.mjs`（扩） | P3.4 探测策略后的节点/边计数断言 |
+| `pubtator-search-test.mjs` | 四种查询形态、分页、便捷参数拼装、错误输入 |
+| `pubtator-test.mjs` | pmcids 路由与归一化、evidence 参数、>100 分批、会话缓存、互斥校验 |
+| `pubtator-text-test.mjs`（新，v0.4.0） | 两步异步、404 轮询态、指数退避、超时返回 sessionId、sessionId 续取、signal 取消、bioconcept 编码 |
+| `pubtator-default-test.mjs` | 限流队列间距、evidence 挂边、自环/占位 ID 过滤、探测优先级、`PUBTATOR_EDGE_EVIDENCE:false` 零搜索调用 |
+| `graph-test.mjs` | dryRun 预览不落盘；v0.4.0 扩：带 annotations 的自有文本入图 |
+| `d-fallback-test.mjs` | PubTator 全挂时新工具报错清晰、建图静默降级不中断 |
+| `autograph-test.mjs` | 探测策略后的节点/边计数断言 |
 
 ## 7. 风险与约束
 
@@ -252,6 +319,7 @@ register('pubmed_pubtator_annotate_text', '…', {
 - **search API 无官方 response schema**：输出结构以实测为准（§8 Q1），解析层对字段缺失保持宽容（现有 `String(x || '')` 风格延续）。
 - **annotate_text 的 bioconcept 取值范围官方未列全**：schema 先按 6 类给 enum，实测后修正（§8 Q2）。
 - **POST 属于 transport 变更**：影响 `index.js` / `dynamic-wrapper.js` 两处注入，需同步修改并回归 dynamic 模式（无 node:fs 场景）。
+- **P2 服务成熟度**：annotate_text 走的是 CBBresearch/Lu/Demo 老牌 RESTful 服务（非 pubtator3-api 域），SLA/稳定性弱于主站——工具报错必须清晰可恢复（session id 续取），不做静默重试。
 - **向后兼容**：图谱节点/边结构只增不改；新增 config 项均有保守默认值。
 
 ## 8. 待实测 / 待决策（Open Questions）
@@ -260,9 +328,10 @@ register('pubmed_pubtator_annotate_text', '…', {
 |---|---|---|
 | ✅ Q1 | search API 返回 JSON 的确切结构（官方文档未给出） | **已实测（2025-06，Tavily 云端提取）**：DRF 分页 JSON —— `{ results: [{ _id, pmid(number), pmcid?, title, journal, authors[], date, doi?, meta_date_publication, score(number), text_hl(含 <m> 高亮), citations?{NLM,BibTeX} }], facets: { facet_fields: { journal/type/year: [{name, value}] } }, page_size(=10), current, count, total_pages }`。关系式查询同构；schema 已固化进 `pubmed_pubtator_search` 解析器注释 |
 | Q2 | annotate_text 的 `bioconcept` 实际支持取值 | 实测逐类验证，修正 enum |
-| Q3 | pmc_export 走方案 A（扩展 annotate）还是新工具 | **建议方案 A**（见 P1b） |
-| Q4 | 图谱边证据默认开还是关 | 建议默认开、每边 ≤5 条、仅低证据边回查，config 可关 |
-| Q5 | annotate_text 文本长度上限 | 官方未写；实测 50k/200k 字符行为后写进 description |
+| ✅ Q3 | pmc_export 走方案 A（扩展 annotate）还是新工具 | **方案 A 已实施**（v0.3.2） |
+| ✅ Q4 | 图谱边证据默认开还是关 | **已实施**（v0.3.3）：默认开、每边 ≤5 条、仅 ≤50 证据边回查、每篇 ≤2 次调用，`PUBTATOR_EDGE_EVIDENCE:false` 可关 |
+| Q5 | annotate_text 文本长度上限 | 官方未写；P2 实施时实测 50k/200k 字符行为后写进 description |
+| Q6（新增） | request.cgi session 结果的保存时长（TTL） | 官方未写；timeout 续取失败时明确报"session 已过期，请重新提交"；不依赖 TTL 做任何承诺 |
 
 ## 9. 明确不做（Out of Scope）
 
