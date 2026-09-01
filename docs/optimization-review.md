@@ -68,9 +68,9 @@
 
 | 批次 | 版本 | 内容 | 工作量 |
 |---|---|---|---|
-| **✅ 批次一（已实现，本地）** | 版本号待用户确认 | **P0 二.1**（mergeGraph 批量化 + 探测/证据预算缩放 + 超时分级）+ 一.1（删 ncbiPace×3）+ 一.2（死代码/共享动词表）+ 一.3（STOPWORDS 随 constants.js）+ 一.5（parseBool，修 YAML "false" 误开 bug）+ 三.1（patch 注释）+ 三.2（幽灵配置：实现 NCBI_ADMIN_EMAIL + EUROPEPMC_ENABLED 门控）+ 二.3（fulltext 互斥校验）+ 四.2（files 加 docs + lib/constants.js） | ~1d |
-| **批次二** | 版本待定 | 二.4（EPM 重试）+ 二.5（原子写）+ 二.6（图写串行化）+ 三.4（@ 归一化）+ 三.6（SKILL.md 扩充）+ 四.1（lint 选型）+ 一.6 小步（citations.js） | ~1d |
-| **批次三** | v0.4.0 随 P2 / 缓议 | P3.8b + P2 本体 + 三.3（patch 语义实测）+ 一.4 + 二.2 硬化 + 二.7 + 四.3 + 四.4 + 三.5/三.8 | 随 P2 |
+| **✅ 批次一（已发布 v0.3.7）** | v0.3.7 | **P0 二.1**（mergeGraph 批量化 + 探测/证据预算缩放 + 超时分级）+ 一.1（删 ncbiPace×3）+ 一.2（死代码/共享动词表）+ 一.3（STOPWORDS 随 constants.js）+ 一.5（parseBool，修 YAML "false" 误开 bug）+ 三.1（patch 注释）+ 三.2（幽灵配置：实现 NCBI_ADMIN_EMAIL + EUROPEPMC_ENABLED 门控）+ 二.3（fulltext 互斥校验）+ 四.2（files 加 docs + lib/constants.js） | ~1d |
+| **✅ 批次二（已实现，本地）** | 版本号待用户确认 | 二.4（EPM 调用套 withNetRetry）+ 二.5（原子写）+ 二.6（图写串行化）+ 三.4（@ 归一化）+ 三.6（SKILL.md 扩充）+ 四.1（npm scripts + CI 测试门；lint 缓议）| ~1d |
+| **批次三** | v0.4.0 随 P2 / 缓议 | P3.8b + P2 本体 + 三.3（patch 语义实测）+ 一.4（normArgs）+ 一.6 小步（citations.js，受 new Function 架构约束缓议）+ 二.2 硬化 + 二.7 + 四.3（CHANGELOG）+ 四.4（内存上限）+ 三.5/三.8 | 随 P2 |
 
 ## 4. 有争议/需实测事项
 
