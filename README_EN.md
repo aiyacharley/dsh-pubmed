@@ -256,6 +256,7 @@ PubTator3 runs on its **own dedicated ~350 ms queue** (its official limit is 3 r
 
 ## 📜 Version history
 
+- **v0.3.7** (09-01) — **P0 fix: large-scale graph building no longer times out**: mergeGraph batch-prefetch (200 articles drop from 200+ PubTator calls to 2) + probe/evidence budgets (default 8 articles per merge, configurable) + 150 s enrichment deadline with graceful truncation + `httpGet` timeouts actually enforced (graph_add 180 s / fetch_articles 120 s); fixed prefetch failures poisoning the session cache; no-proxy live test **18/18 passed**.
 - **v0.3.6** (09-01) — **Skill doc self-registration**: at plugin activation SKILL.md is written to `~/.dsh/skills/dsh-pubmed/` (a scanned DSH skill root) — clean installs need zero manual copying; idempotent rewrites on upgrade; `SKILL_DOC:false` disables; Release workflow fixed (secrets-in-if parse failure → shell guard).
 - **v0.3.5** (09-01) — **No-proxy resilience**: network-classified failures auto-retry (1s/3s backoff) + Europe PMC fallback chain (`search_articles` / `convert_ids` / `find_related(cited_by/references)` switch to EPM, marked `[via europepmc fallback]`) + actionable errors (dead local proxy vs unreachable host); no-proxy usable tools **2/20 → ~13/20** (blackhole-window floor; open-window live test **18/18 passed**).
 - **v0.3.4** (09-01) — Display parity: `ev:` evidence lines in `relations`, evidence-backed-edges summary in `graph_get`, `[batches/cacheHits]` in `annotate`; offline graph-engine stress script (500 articles in 70 ms).

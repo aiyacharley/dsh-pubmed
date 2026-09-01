@@ -1,6 +1,6 @@
 {
   "name": "dsh-pubmed",
-  "version": "0.3.6",
+  "version": "0.3.7",
   "description": "DSH plugin: PubMed / Europe PMC search, article metadata, full text, citations, MeSH and ID conversion, plus a personal literature knowledge graph with a PubTator3 concept layer (typed entities with concept IDs + curated relations) for the DeepSeek Harness. Core PubMed capabilities originate from @cyanheads/pubmed-mcp-server; the knowledge-graph and concept layers are original extensions.",
   "type": "module",
   "main": "lib/index.js",
