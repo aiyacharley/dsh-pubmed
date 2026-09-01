@@ -46,6 +46,7 @@ Many users have no proxy — from v0.3.5 the plugin's resilience design keeps it
   - ✅ Full: both Europe PMC tools; PubTator tools & search during open windows; search / convert_ids / find_related (retry + fallback double cover)
   - ⚠️ Limited: `find_related similar` (no EPM equivalent — explained in the error), `spell_check`, `lookup_mesh` (NCBI-only; errors carry actionable hints)
 - **Actionable errors**: network failures distinguish "your local proxy is down" (clean up `HTTPS_PROXY`) from "host unreachable" (retry / fallback / use a proxy) — no more bare `fetch failed`.
+- **Live-verified (09-01, no-proxy direct)**: **18/18 tools passed** (20/20 fully usable during open windows) — dual-source search, DOI round-trip, cited_by network, 40k-char full text, cross-tool cache hit (`cacheHits: 1`, zero network reuse), `evidencePmids` evidence edges, dryRun preview all normal.
 - For 100% stability a proxy is still recommended; self-hosted reverse-proxy users can look forward to `BASE_URL` configuration in v0.4.0 (planned).
 
 ## 🧭 Agent routing skill (cross-session)
@@ -249,7 +250,7 @@ PubTator3 runs on its **own dedicated ~350 ms queue** (its official limit is 3 r
 
 ## 📜 Version history
 
-- **v0.3.5** (09-01) — **No-proxy resilience**: network-classified failures auto-retry (1s/3s backoff) + Europe PMC fallback chain (`search_articles` / `convert_ids` / `find_related(cited_by/references)` switch to EPM, marked `[via europepmc fallback]`) + actionable errors (dead local proxy vs unreachable host); no-proxy usable tools **2/20 → ~13/20**.
+- **v0.3.5** (09-01) — **No-proxy resilience**: network-classified failures auto-retry (1s/3s backoff) + Europe PMC fallback chain (`search_articles` / `convert_ids` / `find_related(cited_by/references)` switch to EPM, marked `[via europepmc fallback]`) + actionable errors (dead local proxy vs unreachable host); no-proxy usable tools **2/20 → ~13/20** (blackhole-window floor; open-window live test **18/18 passed**).
 - **v0.3.4** (09-01) — Display parity: `ev:` evidence lines in `relations`, evidence-backed-edges summary in `graph_get`, `[batches/cacheHits]` in `annotate`; offline graph-engine stress script (500 articles in 70 ms).
 - **v0.3.3** (09-01) — **Relation evidence lookup**: `relations({evidence:true})` attaches supporting article PMIDs; built curated edges carry `evidencePmids` by default (configurable); annotate auto-batching (>100) + unified session cache; type-prioritized relation probing (Disease>Chemical>Gene, configurable); fixed self-loop edges / placeholder IDs / mermaid classDef; `graph_add({dryRun})` preview (`extract_keywords` deprecated); lazy-loaded nlp.js.
 - **v0.3.2** (09-01) — `annotate` accepts **PMCIDs** (pmc_export, prefix normalized); routing statements in 7 tool descriptions; bundled `SKILL.md` agent routing skill.
@@ -266,7 +267,7 @@ PubTator3 runs on its **own dedicated ~350 ms queue** (its official limit is 3 r
 
 - DSH (any deployment that supports Cordis bundles)
 - Node.js ≥ 20 (the bundle uses global `fetch`)
-- Outbound access to `eutils.ncbi.nlm.nih.gov` and `www.ebi.ac.uk`
+- Outbound access to `eutils.ncbi.nlm.nih.gov`, `www.ncbi.nlm.nih.gov` (PubTator3) and `www.ebi.ac.uk`
 
 ## 📄 License
 
