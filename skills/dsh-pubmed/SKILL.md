@@ -42,3 +42,51 @@ entity_id（文本→@ID）→ pubtator_search（@ID/关系式→文章）→ fe
 
 - PubTator3 官方 3 req/s：所有 pubtator 工具已走专用 350ms 队列，并发调用会被串行化（属正常，不是卡死）。
 - E-utilities：有 API key ≈8 req/s，无 key ≈2.8 req/s，同样已内置队列。
+- **重试与降级（v0.3.5+）**：网络类失败自动重试（1s/3s 退避）+ EBI 降级链；报错会区分"本地代理已挂"与"目标不可达"。
+
+## 20 工具速查（输入 → 输出）
+
+| 工具 | 输入 | 输出 |
+|---|---|---|
+| `pubmed_search_articles` | query（字段语法）+ 日期/类型过滤 | PMID 列表 + ESummary 摘要 |
+| `pubmed_fetch_articles` | pmids（≤200） | 结构化文章（作者/摘要/MeSH/基金/DOI）|
+| `pubmed_fetch_fulltext` | pmids/pmcids/dois（互斥） | 分节全文（最多 40k 字符/篇）|
+| `pubmed_format_citations` | pmids + styles | APA/MLA/BibTeX/RIS/Vancouver |
+| `pubmed_find_related` | pmid + relation | 相似/被引/参考文献列表 |
+| `pubmed_lookup_mesh` | query | MeSH 描述符（树号/范围/入口词）|
+| `pubmed_lookup_citation` | 残缺引文（≥1 字段）| 匹配 PMID |
+| `pubmed_convert_ids` | ids + idtype | 三类 ID 互转 |
+| `pubmed_spell_check` | query | 纠正建议 |
+| `pubmed_europepmc_search` | query + sources + pageSize | EPM 文章列表（游标分页）|
+| `pubmed_europepmc_fetch` | records（source+id）| 完整 EPM 记录 |
+| `pubmed_pubtator_annotate` | pmids 或 pmcids + full | 实体标注（类型+概念 ID+位置）|
+| `pubmed_pubtator_entity_id` | query + concept | 候选 @实体 ID 列表 |
+| `pubmed_pubtator_relations` | e1 + type/e2 + evidence | curated 关系边（+证据 PMIDs）|
+| `pubmed_pubtator_search` | query/relationType+e1+e2 + page | 排序文章 + facets |
+| `pubmed_extract_keywords` | articles | ⚠️ 已废弃（用 graph_add dryRun）|
+| `pubmed_graph_add` | articles + dryRun | 增量入图（+节点/边统计）|
+| `pubmed_graph_get` | scope + format + minCount | 节点/边 JSON 或 mermaid 卡片|
+| `pubmed_graph_commit` | confirm | 会话图谱 → 用户图谱持久化|
+| `pubmed_graph_reset` | scope | 清空会话（或用户）图谱|
+
+## 配置项（patch config 或环境变量）
+
+| 配置 | 默认 | 说明 |
+|---|---|---|
+| `NCBI_API_KEY` | 无 | 有 key ≈8 req/s（E-utilities 队列提速）|
+| `NCBI_ADMIN_EMAIL` | 内置 noreply 地址 | NCBI 合规联系邮箱 |
+| `AUTO_GRAPH` | true | fetch_articles 自动入会话图谱 |
+| `PUBTATOR` | true | 建图概念层（关闭只走启发式）|
+| `PUBTATOR_EDGE_EVIDENCE` | true | curated 关系边附证据 PMIDs |
+| `PUBTATOR_RELATION_PROBE` | 3（上限 6）| 每篇文章的关系探测概念数 |
+| `PUBTATOR_RELATION_PROBE_ARTICLES` | 8（上限 50）| 每次合并的关系探测文章数 |
+| `EUROPEPMC_ENABLED` | true | EPM 双工具开关 |
+| `SKILL_DOC` | true | 技能文档自注册开关 |
+
+## 易错点（务必记住）
+
+- **`pubmed_extract_keywords` 已废弃**——`graph_add` 内部已做提取；预览用 `graph_add({dryRun:true})`。
+- **`AUTO_GRAPH` 默认开**——fetch_articles 自动入图，不要再手动 graph_add。
+- **用户图谱持久化路径**：`~/.dsh/dsh-pubmed-graph.json`（graph_commit 显式写入）。
+- **无代理（大陆直连）能力矩阵**：EBI 双工具全功能；PubTator/NCBI 工具随直连窗口波动（自动重试 + search/convert/find_related 有 EBI 降级）；`spell_check`/`lookup_mesh`/`similar` 为 NCBI 独有。
+- **@实体 ID 链路**：entity_id 输出（如 `@GENE_CD79A`）→ relations/search 输入；漏 @ 会自动补齐。

@@ -21,6 +21,9 @@ jobs:
           node-version: 20
           registry-url: 'https://registry.npmjs.org'
 
+      - name: Run offline test suite (release gate)
+        run: node scripts/run-tests.mjs
+
       - name: Pack npm tarball
         run: npm pack
 
