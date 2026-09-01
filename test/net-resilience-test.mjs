@@ -38,7 +38,9 @@ const add = (name, ok) => checks.push([name, ok])
   const r = await tools.pubmed_spell_check.execute({ query: 'microbiom' }, S('nr'))
   console.log('T1 calls=' + calls + ' sleeps=' + JSON.stringify(sleeps) + ' corrected=' + r.corrected)
   add('T1 two network failures then success', calls === 3 && r.corrected === 'microbiome')
-  add('T1 backoff steps 1000/3000 applied', sleeps.includes(1000) && sleeps.includes(3000))
+  // P4-二.1 修正: exponential backoff with jitter — first retry ≈1s (750-1250), second ≈2s (1500-2500)
+  const retrySleeps = sleeps.filter((ms) => ms >= 500)
+  add('T1 backoff is exponential (≈1s then ≈2s, ±25% jitter)', retrySleeps.length === 2 && retrySleeps[0] >= 750 && retrySleeps[0] <= 1250 && retrySleeps[1] >= 1500 && retrySleeps[1] <= 2500)
 }
 
 // ---- T2: exhausted retries → actionable error (dead local proxy hint) ----
@@ -67,7 +69,7 @@ const add = (name, ok) => checks.push([name, ok])
   add('T3 marks europepmc fallback', r.viaFallback === 'europepmc' && /Europe PMC/.test(r.fallbackNote))
   add('T3 ids mapped from EPM results', r.ids.join(',') === '111,222')
   add('T3 summaries mapped (title/journal/year/doi)', r.summaries[0].title === 'Fallback paper one' && r.summaries[0].journal === 'J Fallback' && r.summaries[0].doi === '10.1/x')
-  add('T3 retried eutils before falling back', urls.filter((u) => u.includes('eutils')).length === 3 && urls.some((u) => u.includes('ebi.ac.uk')))
+  add('T3 retried eutils before falling back', urls.filter((u) => u.includes('eutils')).length === 7 && urls.some((u) => u.includes('ebi.ac.uk')))
 }
 
 // ---- T4: find_related cited_by falls back via CITES: ----
