@@ -205,9 +205,23 @@ DSH is launched):
 - `pubmed_graph_get({ format:'mermaid' })` renders an NPG-palette card. PubTator is the primary path with heuristic fallback — any failure degrades gracefully without breaking graph building.
 
 Without an API key the plugin serializes requests through a global ~350 ms queue
-(~2.8 req/s, under NCBI's 3 req/s); with `NCBI_API_KEY` it auto-accelerates to
-~120 ms (~8 req/s, under the 10 req/s cap). Parallel calls are serialized to avoid 429s.
-PubTator3 calls share the same paced queue (its official limit is 3 req/s).
+(~2.8 req/s, under NCBI's 3 req/s); with `NCBI_API_KEY` the E-utilities queue
+auto-accelerates to ~120 ms (~8 req/s, under the 10 req/s cap). Parallel calls are serialized to avoid 429s.
+PubTator3 runs on its **own dedicated ~350 ms queue** (its official limit is 3 req/s, independent of any NCBI API key).
+
+## 📜 Version history
+
+- **v0.3.4** (09-01) — Display parity: `ev:` evidence lines in `relations`, evidence-backed-edges summary in `graph_get`, `[batches/cacheHits]` in `annotate`; offline graph-engine stress script (500 articles in 70 ms).
+- **v0.3.3** (09-01) — **Relation evidence lookup**: `relations({evidence:true})` attaches supporting article PMIDs; built curated edges carry `evidencePmids` by default (configurable); annotate auto-batching (>100) + unified session cache; type-prioritized relation probing (Disease>Chemical>Gene, configurable); fixed self-loop edges / placeholder IDs / mermaid classDef; `graph_add({dryRun})` preview (`extract_keywords` deprecated); lazy-loaded nlp.js.
+- **v0.3.2** (09-01) — `annotate` accepts **PMCIDs** (pmc_export, prefix normalized); routing statements in 7 tool descriptions; bundled `SKILL.md` agent routing skill.
+- **v0.3.1** (08-31) — Live acceptance: relation-search→graph closed loop + rate-limit spot checks; hotfix making `pubtator_search`'s `query` optional (convenience params usable).
+- **v0.3.0** (08-31) — **20th tool `pubmed_pubtator_search`**: semantic / boolean / relation-form literature search (pagination + year/journal/type facets), completing the "entity → relation → evidence articles → graph" loop.
+- **v0.2.2** (08-31) — Two correctness fixes: dedicated 350 ms PubTator rate-limit queue (immune to NCBI API key speed-up); relation probing filters before capping (hub-concept in-article edges no longer dropped).
+- **v0.2.1** (08-28) — **PubTator3 concept layer**: `annotate` / `entity_id` / `relations` (19 tools); graph gains concept nodes (authoritative IDs, deduped across articles) + curated relation edges; `PUBTATOR` switch + silent degradation.
+- **v0.2.0** (08-28) — **Personal literature knowledge-graph engine**: session/user dual graphs, incremental merging, NPG-palette mermaid visualization; `AUTO_GRAPH` auto-merge; NLP keywords & directed relation edges (compromise); `NCBI_API_KEY` + adaptive pacing; config via patch row.
+- **v0.1.x** (08-27) — Initial release: 11 PubMed tools ported from [`@cyanheads/pubmed-mcp-server`](https://github.com/cyanheads/pubmed-mcp-server) (search / metadata / full text / citations / MeSH / ID conversion / spell check / Europe PMC).
+
+> Per-commit details: [git tags](https://github.com/aiyacharley/dsh-pubmed/tags); the full PubTator3 enhancement plan lives in [`docs/pubtator3-plan.md`](docs/pubtator3-plan.md).
 
 ## ✅ Requirements
 

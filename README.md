@@ -207,6 +207,20 @@ PubTator3 走**独立的 ~350ms 专用队列**（其官方限额为 3 req/s，�
 `~/.agents/skills/dsh-pubmed/SKILL.md`）后，**新会话**的 agent 无需阅读本文档即可正确调度
 三套检索与建图工具。
 
+## 📜 版本历史
+
+- **v0.3.4**（09-01）— 显示层补齐：`relations` 的 `ev:` 证据行、`graph_get` 的 evidence-backed edges 汇总、`annotate` 的 `[batches/cacheHits]`；图谱引擎离线压测脚本入库（500 篇 70ms）。
+- **v0.3.3**（09-01）— **关系证据回查**：`relations({evidence:true})` 附支持文献 PMIDs，建图 curated 边默认带 `evidencePmids`（可关）；annotate 自动分批（>100）+ 会话级缓存统一；建图探测类型优先（Disease>Chemical>Gene，可配置）；修复自环边 / 占位 ID / mermaid classDef；`graph_add({dryRun})` 预览（`extract_keywords` 废弃）；nlp.js 懒加载降级。
+- **v0.3.2**（09-01）— `annotate` 支持 **PMCID**（pmc_export，自动补前缀）；7 个工具描述加路由语句；随包 `SKILL.md` agent 路由技能。
+- **v0.3.1**（08-31）— 真机验收：关系搜索→建图闭环 + 限速抽查通过；热修 `pubtator_search` 的 `query` 改为可选（便捷参数真正可用）。
+- **v0.3.0**（08-31）— **第 20 个工具 `pubmed_pubtator_search`**：语义 / 布尔 / 关系式文献检索（分页 + 年份/期刊/类型 facets），打通"实体→关系→证据文章→建图"闭环。
+- **v0.2.2**（08-31）— 两项正确性修复：PubTator 独立 350ms 限流队列（不受 NCBI API key 提速影响）；关系探测先过滤后截断（hub 概念文内边不再丢失）。
+- **v0.2.1**（08-28）— **PubTator3 概念层**：`annotate` / `entity_id` / `relations` 三工具（19 工具），建图新增 concept 节点（权威 ID 跨文章去重）+ curated 关系边；`PUBTATOR` 开关 + 静默降级。
+- **v0.2.0**（08-28）— **个人文献知识图谱引擎**：会话/用户双图谱、增量合并、mermaid NPG 配色可视化；`AUTO_GRAPH` 自动入图；NLP 关键词与 directed 关系边（compromise）；`NCBI_API_KEY` + 自适应限速；patch 行 config 注入。
+- **v0.1.x**（08-27）— 初版：自 [`@cyanheads/pubmed-mcp-server`](https://github.com/cyanheads/pubmed-mcp-server) 移植的 11 个 PubMed 工具（检索 / 元数据 / 全文 / 引用 / MeSH / ID 转换 / 拼写 / Europe PMC）。
+
+> 逐版提交细节见 [git tags](https://github.com/aiyacharley/dsh-pubmed/tags)；PubTator3 增强计划全文见 [`docs/pubtator3-plan.md`](docs/pubtator3-plan.md)。
+
 ## ✅ 要求
 
 - DSH 版本（任意支持 Cordis bundle 的部署）
