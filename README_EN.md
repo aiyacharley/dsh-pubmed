@@ -249,6 +249,7 @@ PubTator3 runs on its **own dedicated ~350 ms queue** (its official limit is 3 r
 
 ## 📜 Version history
 
+- **v0.3.5** (09-01) — **No-proxy resilience**: network-classified failures auto-retry (1s/3s backoff) + Europe PMC fallback chain (`search_articles` / `convert_ids` / `find_related(cited_by/references)` switch to EPM, marked `[via europepmc fallback]`) + actionable errors (dead local proxy vs unreachable host); no-proxy usable tools **2/20 → ~13/20**.
 - **v0.3.4** (09-01) — Display parity: `ev:` evidence lines in `relations`, evidence-backed-edges summary in `graph_get`, `[batches/cacheHits]` in `annotate`; offline graph-engine stress script (500 articles in 70 ms).
 - **v0.3.3** (09-01) — **Relation evidence lookup**: `relations({evidence:true})` attaches supporting article PMIDs; built curated edges carry `evidencePmids` by default (configurable); annotate auto-batching (>100) + unified session cache; type-prioritized relation probing (Disease>Chemical>Gene, configurable); fixed self-loop edges / placeholder IDs / mermaid classDef; `graph_add({dryRun})` preview (`extract_keywords` deprecated); lazy-loaded nlp.js.
 - **v0.3.2** (09-01) — `annotate` accepts **PMCIDs** (pmc_export, prefix normalized); routing statements in 7 tool descriptions; bundled `SKILL.md` agent routing skill.

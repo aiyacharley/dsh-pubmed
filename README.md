@@ -247,6 +247,7 @@ PubTator3 走**独立的 ~350ms 专用队列**（其官方限额为 3 req/s，�
 
 ## 📜 版本历史
 
+- **v0.3.5**（09-01）— **无代理韧性**：网络类失败自动退避重试（1s/3s）+ EBI 降级链（`search_articles` / `convert_ids` / `find_related(cited_by/references)` 自动切 Europe PMC，带 `[via europepmc fallback]` 标记）+ 可行动报错（自动区分"本地代理已挂"vs"目标不可达"）；无代理可用工具 **2/20 → ~13/20**。
 - **v0.3.4**（09-01）— 显示层补齐：`relations` 的 `ev:` 证据行、`graph_get` 的 evidence-backed edges 汇总、`annotate` 的 `[batches/cacheHits]`；图谱引擎离线压测脚本入库（500 篇 70ms）。
 - **v0.3.3**（09-01）— **关系证据回查**：`relations({evidence:true})` 附支持文献 PMIDs，建图 curated 边默认带 `evidencePmids`（可关）；annotate 自动分批（>100）+ 会话级缓存统一；建图探测类型优先（Disease>Chemical>Gene，可配置）；修复自环边 / 占位 ID / mermaid classDef；`graph_add({dryRun})` 预览（`extract_keywords` 废弃）；nlp.js 懒加载降级。
 - **v0.3.2**（09-01）— `annotate` 支持 **PMCID**（pmc_export，自动补前缀）；7 个工具描述加路由语句；随包 `SKILL.md` agent 路由技能。
