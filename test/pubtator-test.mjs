@@ -128,4 +128,33 @@ const checks3 = [
 ]
 for (const [name, ok] of checks3) console.log((ok ? 'PASS' : 'FAIL') + '  ' + name)
 if (checks3.some(([, ok]) => !ok)) { console.log('RELATIONS FAIL'); process.exit(1) }
+
+// ---- B4: annotate pmcids (pmc_export routing, prefix normalization, mutual exclusion) ----
+const tools4 = {}
+const urls4 = []
+registerPubmedTools({ get: () => undefined }, {
+  defineTool: (o) => o,
+  register: (d) => { tools4[d.name] = d },
+  httpGet: async (url) => { urls4.push(String(url)); return { status: 200, body: JSON.stringify(JSON_BODY) } },
+  sleep: (ms) => new Promise((r) => setTimeout(r, ms)),
+})
+const annPmc = await tools4.pubmed_pubtator_annotate.execute({ pmcids: ['7696669', 'PMC8869656'], full: true }, S('pt'))
+const pmcUrl = urls4[urls4.length - 1]
+console.log('B4 pmc url:', pmcUrl)
+let threwBoth = false
+try { await tools4.pubmed_pubtator_annotate.execute({ pmids: ['123'], pmcids: ['PMC1'] }, S('pt')) } catch (e) { threwBoth = true }
+let threwNone = false
+try { await tools4.pubmed_pubtator_annotate.execute({}, S('pt')) } catch (e) { threwNone = true }
+const checks4 = [
+  ['B4 routes to pmc_export', pmcUrl.includes('/publications/pmc_export/biocjson?')],
+  ['B4 normalizes missing PMC prefix', decodeURIComponent(pmcUrl).includes('pmcids=PMC7696669,PMC8869656')],
+  ['B4 full param forwarded', pmcUrl.includes('full=true')],
+  ['B4 parses articles', annPmc.articles.length === 2],
+  ['B4 lossless', walk(annPmc)],
+  ['B4 pmids+pmcids together throws', threwBoth],
+  ['B4 neither list throws', threwNone],
+]
+for (const [name, ok] of checks4) console.log((ok ? 'PASS' : 'FAIL') + '  ' + name)
+if (checks4.some(([, ok]) => !ok)) { console.log('PMC EXPORT FAIL'); process.exit(1) }
+
 console.log('PUBTATOR TEST OK')
