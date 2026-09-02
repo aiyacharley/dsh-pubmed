@@ -107,6 +107,38 @@ const S2_TOOLS = ['pubmed_search_s2', 'pubmed_get_s2_detail', 'pubmed_get_s2_cit
   add('S2 no-key pacing requests a ≥1000ms gap between calls', sleeps.some((ms) => ms >= 1000))
 }
 
+// ---- S2 inside the unified search (pubmed_search_papers, opt-in 's2') ----
+{
+  // PubMed returns PMID 111 (DOI 10.1/aaa); S2 returns the SAME paper (by PMID+DOI)
+  // plus one S2-only record. They must dedup-merge: foundIn includes s2, citedBy merged.
+  const esearch = JSON.stringify({ esearchresult: { idlist: ['111'], count: '1' } })
+  const esummary = JSON.stringify({ result: { uids: ['111'], '111': { pmid: '111', title: 'Metformin and AMPK activation in liver', authors: [{ name: 'A Author' }], fulljournalname: 'J Metab', pubdate: '2024 Jan', articleids: [{ idtype: 'doi', value: '10.1/aaa' }] } } })
+  const s2body = JSON.stringify({ total: 50, data: [
+    { paperId: 'S2x', title: 'Metformin and AMPK activation in liver', year: 2024, venue: 'J Metab', citationCount: 87, externalIds: { PubMed: '111', DOI: '10.1/aaa' }, authors: [{ name: 'A Author' }] },
+    { paperId: 'S2y', title: 'Metformin beyond glucose', year: 2025, venue: 'J S2', externalIds: { DOI: '10.2/bbb' }, authors: [{ name: 'B Author' }] },
+  ] })
+  const { tools } = makeTools((u) => {
+    if (u.includes('esearch.fcgi')) return { status: 200, body: esearch }
+    if (u.includes('esummary.fcgi')) return { status: 200, body: esummary }
+    if (u.includes('api.semanticscholar.org')) return { status: 200, body: s2body }
+    return { status: 200, body: '{}' }
+  })
+  const r = await tools.pubmed_search_papers.execute({ query: 'metformin', sources: ['pubmed', 's2'], maxResultsPerSource: 10 }, S('s2'))
+  add('S2-in-unified: 2 unique after merge (PMID 111 merged, S2-only kept)', r.total === 2)
+  const first = r.papers.find((p) => p.pmid === '111')
+  add('S2-in-unified: PubMed+S2 hit merged (foundIn s2 + citedBy 87)', first != null && first.foundIn.includes('pubmed') && first.foundIn.includes('s2') && first.citedByCount === 87)
+  const s2only = r.papers.find((p) => p.title === 'Metformin beyond glucose')
+  add('S2-in-unified: S2-only record kept (source s2, foundIn 1)', s2only != null && s2only.source === 's2' && s2only.foundIn.length === 1)
+  add('S2-in-unified: perSource reports s2 OK', r.perSource.some((p) => p.source === 's2' && !p.error))
+}
+{
+  // S2_ENABLED:false → unified search reports 's2 disabled', never queries S2.
+  const { tools } = makeTools(() => { throw new Error('S2 must not be called when disabled') }, { s2Enabled: false })
+  const r = await tools.pubmed_search_papers.execute({ query: 'x', sources: ['pubmed', 's2'] }, S('s2'))
+  const s2p = r.perSource.find((p) => p.source === 's2')
+  add('S2_ENABLED:false → unified search perSource "s2 disabled" (no S2 call)', s2p != null && /s2 disabled/.test(s2p.error || ''))
+}
+
 for (const [name, ok] of checks) console.log((ok ? 'PASS' : 'FAIL') + '  ' + name)
 const fails = checks.filter(([, ok]) => !ok).length
 console.log(fails ? `S2 TEST FAIL (${fails})` : 'S2 TEST OK')
