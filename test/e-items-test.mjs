@@ -129,12 +129,17 @@ function makeTools(httpGet) {
   ] } })
   const mkY = () => makeTools((u) => {
     if (u.includes('esearch.fcgi')) return { status: 200, body: esearch }
+    if (u.includes('api.openalex.org')) return { status: 200, body: JSON.stringify({ meta: { count: 0 }, results: [] }) }
     if (u.includes('europepmc') || u.includes('ebi.ac.uk')) return { status: 200, body: epm }
     return { status: 200, body: MED }
   })
-  const r = await mkY().tools.pubmed_search_papers.execute({ query: 'x', year: '2024' }, S('e'))
+  const t1 = mkY()
+  const r = await t1.tools.pubmed_search_papers.execute({ query: 'x', year: '2024' }, S('e'))
   add('year filter keeps only matching year', r.total === 1 && r.papers[0].title === 'Paper 2024')
   add('year filter drops no-year records', !r.papers.some((p) => p.title === 'No year'))
+  add('year pushed into PubMed esearch (mindate+datetype=pdat)', t1.urls.some((u) => { const d = decodeURIComponent(u); return d.includes('mindate=2024/01/01') && d.includes('maxdate=2024/12/31') && d.includes('datetype=pdat') }))
+  add('year pushed into Europe PMC (PUB_YEAR range)', t1.urls.some((u) => decodeURIComponent(u).includes('PUB_YEAR:[2024 TO 2024]')))
+  add('year pushed into OpenAlex (from/to_publication_date)', t1.urls.some((u) => decodeURIComponent(u).includes('filter=from_publication_date:2024-01-01,to_publication_date:2024-12-31')))
   const rr = await mkY().tools.pubmed_search_papers.execute({ query: 'x', year: '2023-2024' }, S('e'))
   add('year range 2023-2024 keeps both', rr.total === 2)
   add('year echoed in result', r.year === '2024')
