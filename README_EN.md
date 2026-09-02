@@ -131,7 +131,7 @@ supporting literature, and which directions your review already covers.
 |---|---|---|
 | `pubmed_search_articles` | Full PubMed keyword search (boolean / field / date syntax) | Field filters, date ranges, publication-type filters |
 | `pubmed_europepmc_search` | Europe PMC search (MED/PMC/PPR/PAT/AGR, cursor paging) | PubMed too narrow (preprints / patents / non-journal) |
-| `pubmed_search_papers` | **Cross-source unified search**: PubMed + Europe PMC deduped & merged (add `'s2'` to `sources` to include Semantic Scholar) | One consolidated multi-platform list without manual de-dup |
+| `pubmed_search_papers` | **Cross-source unified search**: PubMed + Europe PMC deduped & merged (add `'s2'` or `'all'` to `sources` to include Semantic Scholar; `year` cross-source filter, `sort` by citations/year) | One consolidated multi-platform list without manual de-dup |
 | `pubmed_pubtator_search` | PubTator3 semantic / relation search (@entity / boolean / `relations:`) | A specific bioconcept or drug/gene-disease relation is named |
 | `pubmed_search_s2` | Semantic Scholar all-field search (citation counts, normalized IDs) | Cross-field search, impact info |
 | `pubmed_find_related` | Grow from one known paper: similar / citing / references | Citation-network expansion |

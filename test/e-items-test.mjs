@@ -117,6 +117,66 @@ function makeTools(httpGet) {
   const script = readFileSync(fileURLToPath(new URL('../scripts/sync-mirror.mjs', import.meta.url)), 'utf8')
   add('E1 sync-mirror wired into release.yml publish step', wf.includes('node scripts/sync-mirror.mjs') && script.includes('registry.npmmirror.com'))
 }
+{
+  // year filter: EPM rows 2024/2023/2025/no-year; filter "2024" → only 2024 kept.
+  const esearch = JSON.stringify({ esearchresult: { idlist: [], count: '0' } })
+  const epm = JSON.stringify({ hitCount: 100, resultList: { result: [
+    { id: 'E1', source: 'MED', title: 'Paper 2024', pubYear: '2024', doi: '10.1/a' },
+    { id: 'E2', source: 'MED', title: 'Paper 2023', pubYear: '2023', doi: '10.1/b' },
+    { id: 'E3', source: 'MED', title: 'Paper 2025', pubYear: '2025', doi: '10.1/c' },
+    { id: 'E4', source: 'MED', title: 'No year', doi: '10.1/d' },
+  ] } })
+  const mkY = () => makeTools((u) => {
+    if (u.includes('esearch.fcgi')) return { status: 200, body: esearch }
+    if (u.includes('europepmc') || u.includes('ebi.ac.uk')) return { status: 200, body: epm }
+    return { status: 200, body: MED }
+  })
+  const r = await mkY().tools.pubmed_search_papers.execute({ query: 'x', year: '2024' }, S('e'))
+  add('year filter keeps only matching year', r.total === 1 && r.papers[0].title === 'Paper 2024')
+  add('year filter drops no-year records', !r.papers.some((p) => p.title === 'No year'))
+  const rr = await mkY().tools.pubmed_search_papers.execute({ query: 'x', year: '2023-2024' }, S('e'))
+  add('year range 2023-2024 keeps both', rr.total === 2)
+  add('year echoed in result', r.year === '2024')
+}
+{
+  // sort: citations desc / year desc on the merged list.
+  const esearch = JSON.stringify({ esearchresult: { idlist: [], count: '0' } })
+  const epm = JSON.stringify({ hitCount: 100, resultList: { result: [
+    { id: 'E1', source: 'MED', title: 'Cited 5', pubYear: '2020', citedByCount: 5 },
+    { id: 'E2', source: 'MED', title: 'Cited 50', pubYear: '2021', citedByCount: 50 },
+    { id: 'E3', source: 'MED', title: 'Cited 12', pubYear: '2022', citedByCount: 12 },
+  ] } })
+  const mkS = () => makeTools((u) => {
+    if (u.includes('esearch.fcgi')) return { status: 200, body: esearch }
+    if (u.includes('europepmc') || u.includes('ebi.ac.uk')) return { status: 200, body: epm }
+    return { status: 200, body: MED }
+  })
+  const r = await mkS().tools.pubmed_search_papers.execute({ query: 'x', sort: 'citations' }, S('e'))
+  add('sort citations desc', r.papers.map((p) => p.title).join(',') === 'Cited 50,Cited 12,Cited 5' && r.sort === 'citations')
+  const ry = await mkS().tools.pubmed_search_papers.execute({ query: 'x', sort: 'year' }, S('e'))
+  add('sort year desc', ry.papers.map((p) => p.title).join(',') === 'Cited 12,Cited 50,Cited 5')
+}
+{
+  // sources:['all'] shorthand → queries all three platforms.
+  const esearch = JSON.stringify({ esearchresult: { idlist: [], count: '0' } })
+  const epm = JSON.stringify({ hitCount: 0, resultList: { result: [] } })
+  const s2 = JSON.stringify({ total: 0, data: [] })
+  const { tools } = makeTools((u) => {
+    if (u.includes('esearch.fcgi')) return { status: 200, body: esearch }
+    if (u.includes('api.semanticscholar.org')) return { status: 200, body: s2 }
+    if (u.includes('europepmc') || u.includes('ebi.ac.uk')) return { status: 200, body: epm }
+    return { status: 200, body: MED }
+  })
+  const r = await tools.pubmed_search_papers.execute({ query: 'x', sources: ['all'] }, S('e'))
+  add("sources ['all'] queries all three (perSource has pubmed/europepmc/s2)", r.perSource.length === 3 && ['pubmed', 'europepmc', 's2'].every((s) => r.perSource.some((p) => p.source === s)))
+}
+{
+  // malformed year → clear error.
+  const { tools } = makeTools(() => ({ status: 200, body: MED }))
+  let msg = ''
+  try { await tools.pubmed_search_papers.execute({ query: 'x', year: '20x3' }, S('e')) } catch (e) { msg = String(e.message) }
+  add('invalid year throws clear error', /year must look like/.test(msg))
+}
 
 for (const [name, ok] of checks) console.log((ok ? 'PASS' : 'FAIL') + '  ' + name)
 const fails = checks.filter(([, ok]) => !ok).length

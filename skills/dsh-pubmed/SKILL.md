@@ -38,7 +38,7 @@ entity_id（文本→@ID）→ pubtator_search（@ID/关系式→文章）→ fe
 |---|---|---|
 | `pubmed_search_articles` | PubMed 关键词检索 | 要字段语法/日期/类型过滤时用；**实体+关系类问题别用它** |
 | `pubmed_europepmc_search` | 跨库检索 | PubMed 覆盖不足（预印本等）时用 |
-| `pubmed_search_papers` | 跨源统一搜索（去重合并） | 要**一份去重后的综合列表**时用（可 `sources` 加 `'s2'` 并入 S2）；要某源特有过滤/排序/分页时用它下面的平台工具 |
+| `pubmed_search_papers` | 跨源统一搜索（去重合并） | 要**一份去重后的综合列表**时用（可 `sources` 加 `'s2'`/`'all'` 并入 S2，`year` 过滤、`sort` 按被引/年份）；要某源特有过滤/排序/分页时用它下面的平台工具 |
 | `pubmed_pubtator_search` | 语义/关系检索 | **提到具体生物实体或药-病关系时首选**；纯关键词语法查询它不支持 |
 
 ## 限速常识
@@ -63,7 +63,7 @@ entity_id（文本→@ID）→ pubtator_search（@ID/关系式→文章）→ fe
 | `pubmed_spell_check` | query | 纠正建议 |
 | `pubmed_europepmc_search` | query + sources + pageSize | EPM 文章列表（游标分页）|
 | `pubmed_europepmc_fetch` | records（source+id）| 完整 EPM 记录 |
-| `pubmed_search_papers` | query + sources(pubmed/europepmc/s2) + maxResultsPerSource | 多源去重合并排序的文章列表 + perSource 报告 |
+| `pubmed_search_papers` | query + sources(pubmed/europepmc/s2/all) + year + sort | 多源去重合并排序的文章列表 + perSource 报告 |
 | `pubmed_pubtator_annotate` | pmids 或 pmcids + full | 实体标注（类型+概念 ID+位置）|
 | `pubmed_pubtator_entity_id` | query + concept | 候选 @实体 ID 列表 |
 | `pubmed_pubtator_relations` | e1 + type/e2 + evidence | curated 关系边（+证据 PMIDs）|
