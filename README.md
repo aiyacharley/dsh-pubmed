@@ -14,18 +14,38 @@
 
 ## 目录
 
+- [🚀 安装（2 分钟上手）](#-安装2-分钟上手)
 - [为什么需要它](#为什么需要它)
 - [三大亮点](#三大亮点)
-- [快速开始](#快速开始-2-分钟)
 - [25 个工具 · 按任务分组](#25-个工具--按任务分组)
 - [真实场景剧本](#真实场景剧本)
 - [配置](#配置)
 - [无代理网络（大陆直连）](#无代理网络大陆直连)
 - [Agent 路由技能（自动注册）](#agent-路由技能自动注册)
-- [安装与卸载](#安装与卸载)
+- [安装与卸载（完整）](#安装与卸载完整)
 - [版本历史](#版本历史)
 - [要求](#要求)
 - [License 与致谢](#license-与致谢)
+
+---
+
+## 🚀 安装（2 分钟上手）
+
+```bash
+# 一条命令安装（官方 CLI，推荐）
+dsh plugin --profile web add dsh-pubmed@latest
+# 或从 GitHub：dsh plugin --profile web add github:aiyacharley/dsh-pubmed
+# 或本机源码：dsh plugin --profile web add /path/to/dsh-pubmed
+```
+
+装完**重启 DSH**，`pubmed_*` 出现在所有会话。自检一条：
+
+```
+pubmed_spell_check({ query: 'microbiom' })    # → corrected: "microbiome"
+```
+
+> 零配置即可用；更多安装方式（粘贴给 Agent 自动装 / 手动 patch）见文末
+> [安装与卸载（完整）](#安装与卸载完整)，卸载见同节。
 
 ---
 
@@ -86,24 +106,6 @@ fetch_articles（自动入图）→ 多轮增量累积 → graph_get({format:'me
 - **Semantic Scholar 五工具**：补上 PubMed 生态缺失的三件事——**被引数**（`get_s2_detail`）、
   **论文推荐**（`get_s2_recommendations`）、**标题精确匹配**（`match_paper_by_title`），
   外加**全领域检索**（`search_s2`，不限于生物医学）。官方免费 API，无 key 也能用。
-
----
-
-## 快速开始（2 分钟）
-
-```bash
-# 一条命令安装（官方 CLI，推荐）
-dsh plugin --profile web add dsh-pubmed@latest
-```
-
-装完**重启 DSH**，`pubmed_*` 出现在所有会话。自检一条：
-
-```
-pubmed_spell_check({ query: 'microbiom' })    # → corrected: "microbiome"
-```
-
-想更系统地探索？本插件在激活时**自动注册了一份额外的技能文档** `dsh-pubmed`（路由指南），
-新会话的 agent 会自动读到"什么话术该调哪个工具"。
 
 ---
 
@@ -281,7 +283,7 @@ bundle 运行时**零配置即可用**。可选配置建议写进 profile 的 pa
 
 ---
 
-## 安装与卸载
+## 安装与卸载（完整）
 
 ### 安装
 
@@ -320,8 +322,21 @@ dsh plugin --profile web add dsh-pubmed@latest
 ### 卸载
 
 - **会话级**：`cordis_undefine` 该插件即可（或重启 DSH，会话级插件本就不持久）；
-- **持久化**：`dsh plugin --profile <名称> remove dsh-pubmed` 后重启。
+- **持久化**：`dsh plugin --profile <名称> remove dsh-pubmed` 后重启；
   若还配了原版 pubmed-mcp-server 的 MCP 桥接（`mcp-pubmed` 行），一并删除并重启。
+- 复制粘贴给 Agent 自动卸载：
+
+````text
+【请帮我卸载 dsh-pubmed（重启后所有会话不再有 pubmed_* 工具）】
+1) 找到 DSH profile 名称（如 web；不确定就先问）。
+2) 运行 dsh plugin --profile <名称> remove dsh-pubmed。
+   若该命令不可用，则手动：从 package.json 删除 "dsh-pubmed" 依赖（及 bundles 里的条目），
+   从 cordis.patch.yml 删除 id 为 pubmed 的 insert 块，再 npm install。
+3) 提示用户重启 DSH。
+````
+
+> **卸载后残留**：技能文档 `~/.dsh/skills/dsh-pubmed/` 会保留（孤儿文件，可手动删除）；
+> 用户图谱文件 `~/.dsh/dsh-pubmed-graph.json` 也会保留（你的知识资产，按需手动删）。
 
 ---
 
