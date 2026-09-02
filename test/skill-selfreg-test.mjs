@@ -23,7 +23,8 @@ mod.apply(ctx, {})
 const m1 = statSync(skillPath)
 add('1 skill doc generated at $DSH_HOME/skills/dsh-pubmed/', existsSync(skillPath))
 add('1 content synced from package SKILL.md', readFileSync(skillPath, 'utf8') === pkgSkill)
-add('1 19 tools registered on activation', registered.length === 19)
+// v0.4.0: 19 base tools + pubmed_search_papers (E3) + 5 Semantic Scholar tools (E5) = 25
+add('1 25 tools registered on activation', registered.length === 25)
 
 // 2) second activation: idempotent (no rewrite when content unchanged)
 const mBefore = statSync(skillPath).mtimeMs

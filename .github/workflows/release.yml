@@ -46,3 +46,6 @@ jobs:
           else
             npm publish
           fi
+
+      - name: Sync npmmirror (E1 — China users get the new version within a minute)
+        run: node scripts/sync-mirror.mjs
