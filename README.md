@@ -361,6 +361,7 @@ dsh plugin --profile web update dsh-pubmed@0.4.0
 
 ## 版本历史
 
+- **v0.4.1** — **统一搜索增强**：`pubmed_search_papers` 默认三源（PubMed + Europe PMC + **OpenAlex**——快速、免费、全领域、带被引数）；`sources` 加 `'s2'`（opt-in Semantic Scholar）或 `'all'`（四源）；新增 `sort`（relevance/citations/year）与 `year` 跨源过滤（**下推各源查询**，修复了"过滤后 0 条"的问题）；agent 路由描述补全（`search_articles`/`europepmc_search` 现在指向统一搜索）。
 - **v0.4.0** — **生态补全 + 反代可配**：`pubmed_search_papers` 跨源统一检索（去重合并 + perSource 报告）；Semantic Scholar 五工具（被引数 / 推荐 / 标题匹配 / 全领域）；`fetch_fulltext` 分页切片；`EUTILS_BASE_URL` / `PUBTATOR_BASE_URL` / `EPMC_BASE_URL` 可配；发布后自动同步 npmmirror（国内 1 分钟内可装）。
 - **v0.3.9** — 移除已废弃的 `pubmed_extract_keywords`（19 工具）；README/SKILL/cordis 清理。
 - **v0.3.8** — P4 批次二：Europe PMC 网络重试层；用户图谱原子写（防崩溃损坏）；图写入按会话串行化；@ 前缀自动归一化；SKILL 扩充；npm scripts + CI 测试门。

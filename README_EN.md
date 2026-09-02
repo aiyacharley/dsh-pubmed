@@ -386,6 +386,7 @@ dsh plugin --profile web update dsh-pubmed@0.4.0
 
 ## Version history
 
+- **v0.4.1** — **Unified-search upgrade**: `pubmed_search_papers` now defaults to three sources (PubMed + Europe PMC + **OpenAlex** — fast, key-free, all-field, citation counts); `sources` accepts `'s2'` (opt-in Semantic Scholar) and `'all'` (four platforms); new `sort` (relevance/citations/year) and a `year` cross-source filter (pushed server-side per source — fixes the post-hoc filter returning 0 results); agent-facing routing completed (`search_articles`/`europepmc_search` now point at the unified search).
 - **v0.4.0** — **Ecosystem completion + configurable reverse proxy**: `pubmed_search_papers`
   cross-source unified search (deduped & merged, `perSource` report); 5 Semantic Scholar tools (citation
   counts / recommendations / title match / all-field); `fetch_fulltext` paging slices; configurable
