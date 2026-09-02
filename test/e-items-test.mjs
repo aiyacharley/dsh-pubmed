@@ -53,6 +53,7 @@ function makeTools(httpGet) {
   const { tools } = makeTools((u) => {
     if (u.includes('esearch.fcgi')) return { status: 200, body: esearch }
     if (u.includes('esummary.fcgi')) return { status: 200, body: esummary }
+    if (u.includes('api.openalex.org')) return { status: 200, body: JSON.stringify({ meta: { count: 0 }, results: [] }) }
     if (u.includes('europepmc') || u.includes('ebi.ac.uk')) return { status: 200, body: epm }
     return { status: 200, body: MED }
   })
@@ -65,7 +66,7 @@ function makeTools(httpGet) {
   add('E4 NFKC composed/decomposed title merges (Café = Cafe+combining)', cafe != null && Array.isArray(cafe.foundIn) && cafe.foundIn.length === 2)
   const preprint = r.papers.find((p) => (p.title || '').includes('Preprint only'))
   add('E3 single-source record keeps foundIn=[europepmc]', preprint != null && preprint.foundIn.length === 1)
-  add('E3 perSource reports both sources OK', r.perSource.length === 2 && r.perSource.every((p) => !p.error))
+  add('E3 perSource reports pubmed+europepmc OK (openalex default also present)', ['pubmed', 'europepmc'].every((s) => r.perSource.some((p) => p.source === s && !p.error)))
   const ranksMulti = r.papers.filter((p) => p.foundIn.length === 2)
   add('E3 ranking: both multi-platform hits precede single-source ones', r.papers.indexOf(ranksMulti[0]) === 0 && r.papers.indexOf(ranksMulti[1]) === 1)
 }
@@ -157,18 +158,40 @@ function makeTools(httpGet) {
   add('sort year desc', ry.papers.map((p) => p.title).join(',') === 'Cited 12,Cited 50,Cited 5')
 }
 {
-  // sources:['all'] shorthand → queries all three platforms.
+  // sources:['all'] shorthand → queries all four platforms.
   const esearch = JSON.stringify({ esearchresult: { idlist: [], count: '0' } })
   const epm = JSON.stringify({ hitCount: 0, resultList: { result: [] } })
   const s2 = JSON.stringify({ total: 0, data: [] })
+  const oa = JSON.stringify({ meta: { count: 0 }, results: [] })
   const { tools } = makeTools((u) => {
     if (u.includes('esearch.fcgi')) return { status: 200, body: esearch }
     if (u.includes('api.semanticscholar.org')) return { status: 200, body: s2 }
+    if (u.includes('api.openalex.org')) return { status: 200, body: oa }
     if (u.includes('europepmc') || u.includes('ebi.ac.uk')) return { status: 200, body: epm }
     return { status: 200, body: MED }
   })
   const r = await tools.pubmed_search_papers.execute({ query: 'x', sources: ['all'] }, S('e'))
-  add("sources ['all'] queries all three (perSource has pubmed/europepmc/s2)", r.perSource.length === 3 && ['pubmed', 'europepmc', 's2'].every((s) => r.perSource.some((p) => p.source === s)))
+  add("sources ['all'] queries all four (perSource has pubmed/europepmc/openalex/s2)", r.perSource.length === 4 && ['pubmed', 'europepmc', 'openalex', 's2'].every((s) => r.perSource.some((p) => p.source === s)))
+}
+{
+  // OpenAlex is ON by default and merges with PubMed by PMID/DOI.
+  const esearch = JSON.stringify({ esearchresult: { idlist: ['111'], count: '1' } })
+  const esummary = JSON.stringify({ result: { uids: ['111'], '111': { pmid: '111', title: 'Metformin and AMPK activation in liver', authors: [{ name: 'A Author' }], fulljournalname: 'J Metab', pubdate: '2024 Jan', articleids: [{ idtype: 'doi', value: '10.1/aaa' }] } } })
+  const oa = JSON.stringify({ meta: { count: 100 }, results: [
+    { id: 'https://openalex.org/W1', title: 'Metformin and AMPK activation in liver', publication_year: 2024, cited_by_count: 87, doi: 'https://doi.org/10.1/aaa', ids: { pmid: 'https://pubmed.ncbi.nlm.nih.gov/111' }, primary_location: { source: { display_name: 'J Metab' } }, authorships: [{ author: { display_name: 'A Author' } }] },
+    { id: 'https://openalex.org/W2', title: 'OpenAlex only paper', publication_year: 2025, cited_by_count: 3, doi: 'https://doi.org/10.9/zzz', ids: {} },
+  ] })
+  const { tools } = makeTools((u) => {
+    if (u.includes('esearch.fcgi')) return { status: 200, body: esearch }
+    if (u.includes('esummary.fcgi')) return { status: 200, body: esummary }
+    if (u.includes('api.openalex.org')) return { status: 200, body: oa }
+    return { status: 200, body: MED }
+  })
+  const d = await tools.pubmed_search_papers.execute({ query: 'x' }, S('e'))
+  add('openalex is in the DEFAULT sources (no sources arg)', d.perSource.some((p) => p.source === 'openalex' && !p.error))
+  const r = await tools.pubmed_search_papers.execute({ query: 'x', sources: ['pubmed', 'openalex'] }, S('e'))
+  add('openalex merges with PubMed by PMID/DOI (foundIn openalex + citedBy 87)', r.papers.some((p) => p.pmid === '111' && p.foundIn.includes('pubmed') && p.foundIn.includes('openalex') && p.citedByCount === 87))
+  add('openalex-only record kept (source openalex)', r.papers.some((p) => p.title === 'OpenAlex only paper' && p.source === 'openalex'))
 }
 {
   // malformed year → clear error.

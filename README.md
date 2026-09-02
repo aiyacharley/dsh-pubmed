@@ -101,9 +101,10 @@ fetch_articles（自动入图）→ 多轮增量累积 → graph_get({format:'me
 
 ### 亮点三：跨源统一检索 + 被引数据 —— 一次拿全
 
-- **`pubmed_search_papers`（跨源统一检索）**：一条查询同时打 PubMed + Europe PMC，按 DOI / PMID / 规范化标题
-  **去重合并**，多平台命中的文章排最前，并顺带合并 Europe PMC 的被引数，`perSource` 报告各源成败；
-  **可选**把 Semantic Scholar 也加进来（`sources: ['pubmed','europepmc','s2']`），一并去重合并。
+- **`pubmed_search_papers`（跨源统一检索）**：一条查询同时打 **PubMed + Europe PMC + OpenAlex**（默认三源），
+  按 DOI / PMID / 规范化标题**去重合并**，多平台命中的文章排最前，并顺带合并 Europe PMC / OpenAlex 的被引数，
+  `perSource` 报告各源成败；**可选**把 Semantic Scholar 也加进来（`sources: ['pubmed','europepmc','openalex','s2']`
+  或 `['all']`）——OpenAlex 快且免费（~0.5s），S2 是 opt-in（~3s/次、占共享额度）。
 - **Semantic Scholar 五工具**：补上 PubMed 生态缺失的三件事——**被引数**（`get_s2_detail`）、
   **论文推荐**（`get_s2_recommendations`）、**标题精确匹配**（`match_paper_by_title`），
   外加**全领域检索**（`search_s2`，不限于生物医学）。官方免费 API，无 key 也能用。
@@ -120,7 +121,7 @@ fetch_articles（自动入图）→ 多轮增量累积 → graph_get({format:'me
 |---|---|---|
 | `pubmed_search_articles` | PubMed 关键词检索（完整布尔 / 字段 / 日期语法） | 要字段限定、日期范围、出版类型过滤 |
 | `pubmed_europepmc_search` | Europe PMC 检索（MED/PMC/PPR/PAT/AGR 五源，游标分页） | PubMed 覆盖不足（预印本 / 专利 / 非期刊）|
-| `pubmed_search_papers` | **跨源统一检索**：PubMed + Europe PMC 去重合并排序（可 `sources` 加 `'s2'`/`'all'` 并入 Semantic Scholar；`year` 跨源过滤，`sort` 按被引/年份排序） | 要一份多平台综合列表，省去手工去重 |
+| `pubmed_search_papers` | **跨源统一检索**：PubMed + Europe PMC + **OpenAlex**（默认）去重合并排序（可 `sources` 加 `'s2'`/`'all'` 并入 Semantic Scholar；`year` 跨源过滤，`sort` 按被引/年份排序） | 要一份多平台综合列表，省去手工去重 |
 | `pubmed_pubtator_search` | PubTator3 语义 / 关系检索（@实体 / 布尔 / `relations:` 式） | 提到具体生物实体或药-病关系 |
 | `pubmed_search_s2` | Semantic Scholar 全领域检索（含被引数、归一化 ID） | 跨领域检索、要影响力信息 |
 | `pubmed_find_related` | 从一篇已知文章顺藤摸瓜：相似 / 被引 / 参考文献 | 引文网络扩张 |

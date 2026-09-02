@@ -11,7 +11,7 @@ description: Routing guide for the dsh-pubmed plugin's 25 PubMed / Europe PMC / 
 |---|---|---|
 | 提到**具体生物实体**（基因/药/病/突变）+ "找文献/证据/进展" | `pubmed_pubtator_entity_id` → `pubmed_pubtator_search` | 实体归一化免疫同义词噪音；关系式可直达"支持某关系"的文章 |
 | "X 和 Y 有什么**关系**"（不要文献） | `pubmed_pubtator_relations` | 全库聚合的 curated 关系边 + publications 证据数；`evidence:true` 还能给前几条关系附上支持文献 PMIDs |
-| **一次跨 PubMed + Europe PMC 双源**检索，要去重合并后的结果 | `pubmed_search_papers` | 双源命中排前、按 DOI/PMID/标题归一化去重；perSource 报各源成败；`sources` 加 `'s2'` 可并入 Semantic Scholar（opt-in） |
+| **一次跨 PubMed + Europe PMC + OpenAlex（默认三源）**检索，要去重合并后的结果 | `pubmed_search_papers` | 多源命中排前、按 DOI/PMID/标题归一化去重；perSource 报各源成败；`sources` 加 `'s2'` 可并入 Semantic Scholar（opt-in） |
 | 关键词**字段限定**查询（[title]/[dp]/日期/pubType） | `pubmed_search_articles` | 唯一支持 PubMed 完整语法的工具 |
 | PubMed **不够广**（预印本/专利/非期刊） | `pubmed_europepmc_search` → `pubmed_europepmc_fetch` | MED/PMC/PPR/PAT/AGR 五源 |
 | 要**被引数 / 论文推荐 / 标题→论文精确匹配**，或检索**全领域**（不限生物医学） | `pubmed_get_s2_detail` / `pubmed_get_s2_citations` / `pubmed_get_s2_recommendations` / `pubmed_match_paper_by_title` / `pubmed_search_s2` | Semantic Scholar 免费 Graph API：PubMed 生态缺的被引数据在此补全 |
@@ -38,7 +38,7 @@ entity_id（文本→@ID）→ pubtator_search（@ID/关系式→文章）→ fe
 |---|---|---|
 | `pubmed_search_articles` | PubMed 关键词检索 | 要字段语法/日期/类型过滤时用；**实体+关系类问题别用它** |
 | `pubmed_europepmc_search` | 跨库检索 | PubMed 覆盖不足（预印本等）时用 |
-| `pubmed_search_papers` | 跨源统一搜索（去重合并） | 要**一份去重后的综合列表**时用（可 `sources` 加 `'s2'`/`'all'` 并入 S2，`year` 过滤、`sort` 按被引/年份）；要某源特有过滤/排序/分页时用它下面的平台工具 |
+| `pubmed_search_papers` | 跨源统一搜索（去重合并） | 要**一份去重后的综合列表**时用（默认 PubMed+EPM+OpenAlex；可 `sources` 加 `'s2'`/`'all'` 并入 S2，`year` 过滤、`sort` 按被引/年份）；要某源特有过滤/排序/分页时用它下面的平台工具 |
 | `pubmed_pubtator_search` | 语义/关系检索 | **提到具体生物实体或药-病关系时首选**；纯关键词语法查询它不支持 |
 
 ## 限速常识
@@ -63,7 +63,7 @@ entity_id（文本→@ID）→ pubtator_search（@ID/关系式→文章）→ fe
 | `pubmed_spell_check` | query | 纠正建议 |
 | `pubmed_europepmc_search` | query + sources + pageSize | EPM 文章列表（游标分页）|
 | `pubmed_europepmc_fetch` | records（source+id）| 完整 EPM 记录 |
-| `pubmed_search_papers` | query + sources(pubmed/europepmc/s2/all) + year + sort | 多源去重合并排序的文章列表 + perSource 报告 |
+| `pubmed_search_papers` | query + sources(pubmed/europepmc/openalex/s2/all) + year + sort | 多源去重合并排序的文章列表 + perSource 报告 |
 | `pubmed_pubtator_annotate` | pmids 或 pmcids + full | 实体标注（类型+概念 ID+位置）|
 | `pubmed_pubtator_entity_id` | query + concept | 候选 @实体 ID 列表 |
 | `pubmed_pubtator_relations` | e1 + type/e2 + evidence | curated 关系边（+证据 PMIDs）|
