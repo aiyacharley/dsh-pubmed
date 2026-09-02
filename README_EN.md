@@ -128,13 +128,17 @@ supporting literature, and which directions your review already covers.
 
 ### 🔍 Search
 
+> 💡 **Start here for broad sweeps**: `pubmed_search_papers` (cross-source unified search) queries
+> PubMed + Europe PMC + OpenAlex and de-duplicates the result — the go-to entry for "what is out there
+> on this topic". The tools below serve specific needs.
+
 | Tool | What it does | When to use |
 |---|---|---|
+| `pubmed_search_papers` | **⭐ Cross-source unified search (preferred)**: PubMed + Europe PMC + **OpenAlex** (default three sources) deduped & merged; add `'s2'`/`'all'` to `sources` for Semantic Scholar; `year` cross-source filter, `sort` by citations/year | One consolidated multi-platform list, broad sweeps — **try this first** |
+| `pubmed_pubtator_search` | PubTator3 semantic / relation search (@entity / boolean / `relations:`) | A specific bioconcept or drug/gene-disease relation is named |
 | `pubmed_search_articles` | Full PubMed keyword search (boolean / field / date syntax) | Field filters, date ranges, publication-type filters |
 | `pubmed_europepmc_search` | Europe PMC search (MED/PMC/PPR/PAT/AGR, cursor paging) | PubMed too narrow (preprints / patents / non-journal) |
-| `pubmed_search_papers` | **Cross-source unified search**: PubMed + Europe PMC + **OpenAlex** (default) deduped & merged (add `'s2'` or `'all'` to `sources` to include Semantic Scholar; `year` cross-source filter, `sort` by citations/year) | One consolidated multi-platform list without manual de-dup |
-| `pubmed_pubtator_search` | PubTator3 semantic / relation search (@entity / boolean / `relations:`) | A specific bioconcept or drug/gene-disease relation is named |
-| `pubmed_search_s2` | Semantic Scholar all-field search (citation counts, normalized IDs) | Cross-field search, impact info |
+| `pubmed_search_s2` | Semantic Scholar all-field search (citation counts, normalized IDs) | Cross-field search, impact info (S2 citation graph / recommendations) |
 | `pubmed_find_related` | Grow from one known paper: similar / citing / references | Citation-network expansion |
 
 ### 📖 Full text & metadata

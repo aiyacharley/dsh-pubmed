@@ -117,13 +117,16 @@ fetch_articles（自动入图）→ 多轮增量累积 → graph_get({format:'me
 
 ### 🔍 检索
 
+> 💡 **宽口径扫描先看这里**：`pubmed_search_papers`（跨源统一检索）一次查 PubMed + Europe PMC + OpenAlex
+> 并去重合并，是回答"这个方向到底有哪些文献"的首选入口；下面的工具服务特定需求。
+
 | 工具 | 作用 | 什么时候用 |
 |---|---|---|
+| `pubmed_search_papers` | **⭐ 跨源统一检索（首选）**：PubMed + Europe PMC + **OpenAlex**（默认三源）去重合并排序；`sources` 加 `'s2'`/`'all'` 可并入 Semantic Scholar；`year` 跨源过滤、`sort` 按被引/年份 | 要一份多平台综合列表、宽口径扫描——**先试这个** |
+| `pubmed_pubtator_search` | PubTator3 语义 / 关系检索（@实体 / 布尔 / `relations:` 式） | 提到具体生物实体或药-病关系 |
 | `pubmed_search_articles` | PubMed 关键词检索（完整布尔 / 字段 / 日期语法） | 要字段限定、日期范围、出版类型过滤 |
 | `pubmed_europepmc_search` | Europe PMC 检索（MED/PMC/PPR/PAT/AGR 五源，游标分页） | PubMed 覆盖不足（预印本 / 专利 / 非期刊）|
-| `pubmed_search_papers` | **跨源统一检索**：PubMed + Europe PMC + **OpenAlex**（默认）去重合并排序（可 `sources` 加 `'s2'`/`'all'` 并入 Semantic Scholar；`year` 跨源过滤，`sort` 按被引/年份排序） | 要一份多平台综合列表，省去手工去重 |
-| `pubmed_pubtator_search` | PubTator3 语义 / 关系检索（@实体 / 布尔 / `relations:` 式） | 提到具体生物实体或药-病关系 |
-| `pubmed_search_s2` | Semantic Scholar 全领域检索（含被引数、归一化 ID） | 跨领域检索、要影响力信息 |
+| `pubmed_search_s2` | Semantic Scholar 全领域检索（含被引数、归一化 ID） | 跨领域检索、要影响力信息（S2 引文图 / 推荐） |
 | `pubmed_find_related` | 从一篇已知文章顺藤摸瓜：相似 / 被引 / 参考文献 | 引文网络扩张 |
 
 ### 📖 全文与元数据
