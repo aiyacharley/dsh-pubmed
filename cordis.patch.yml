@@ -10,15 +10,19 @@
 # The profile boot then merges THIS patch (a single `insert` of the plugin
 # row) exactly like a manual cordis.patch.yml mount line.
 #
-# The row registers 20 model tools on the host `tools` registry, so they are
+# The row registers 25 model tools on the host `tools` registry, so they are
 # callable in every session that mounts the bundle:
 #   PubMed/E-utilities: pubmed_search_articles, pubmed_fetch_articles,
 #     pubmed_fetch_fulltext, pubmed_format_citations, pubmed_find_related,
 #     pubmed_lookup_mesh, pubmed_lookup_citation, pubmed_convert_ids,
 #     pubmed_spell_check
 #   Europe PMC: pubmed_europepmc_search, pubmed_europepmc_fetch
+#   Unified search: pubmed_search_papers
 #   PubTator3: pubmed_pubtator_annotate, pubmed_pubtator_entity_id,
 #     pubmed_pubtator_relations, pubmed_pubtator_search
+#   Semantic Scholar: pubmed_search_s2, pubmed_get_s2_detail,
+#     pubmed_get_s2_citations, pubmed_get_s2_recommendations,
+#     pubmed_match_paper_by_title
 #   Knowledge graph: pubmed_graph_add, pubmed_graph_get, pubmed_graph_commit,
 #     pubmed_graph_reset
 - insert:

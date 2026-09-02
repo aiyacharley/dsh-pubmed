@@ -7,17 +7,19 @@
 
 Starting from the core PubMed capabilities of [`@cyanheads/pubmed-mcp-server`](https://github.com/cyanheads/pubmed-mcp-server)
 and substantially extended into native DSH model tools: beyond search, article metadata, full text, citation
-formatting, MeSH and ID conversion, it adds a **personal literature knowledge graph** (session/user dual graphs)
-and a **PubTator3 concept layer** (typed entities with authoritative IDs + curated relations) — 19 tools in
-total, talking directly to NCBI E-utilities, Europe PMC REST and PubTator3. No MCP client configuration required.
+formatting, MeSH and ID conversion, it adds a **personal literature knowledge graph** (session/user dual graphs),
+a **PubTator3 concept layer** (typed entities with authoritative IDs + curated relations), a **cross-source unified
+search** (PubMed + Europe PMC deduplicated), and **Semantic Scholar direct integration** (citation counts /
+paper recommendations / title matching / all-field search) — 25 tools in total, talking directly to NCBI
+E-utilities, Europe PMC REST, PubTator3 and Semantic Scholar. No MCP client configuration required.
 
-## ✨ Features (19 tools)
+## ✨ Features (25 tools)
 
 | Tool | Description |
 |---|---|
 | `pubmed_search_articles` | Full PubMed search (boolean / field / date syntax; **keyword-level** — prefer `pubtator_search` for entity & relation questions) |
 | `pubmed_fetch_articles` | Structured articles by PMID (authors / abstract / MeSH / grants / DOI / PMCID; with AUTO_GRAPH on by default results **auto-merge into the session graph** — no separate graph_add) |
-| `pubmed_fetch_fulltext` | PMC full text (JATS → sectioned body, best-effort) |
+| `pubmed_fetch_fulltext` | PMC full text (JATS → sectioned body; page through long papers with `offset`/`maxCharacters`, best-effort) |
 | `pubmed_format_citations` | APA 7 / MLA 9 / BibTeX / RIS / Vancouver citations |
 | `pubmed_find_related` | Similar / citing / references (ELink + ESummary) |
 | `pubmed_lookup_mesh` | MeSH vocabulary (tree numbers / scope notes / entry terms) |
@@ -26,10 +28,16 @@ total, talking directly to NCBI E-utilities, Europe PMC REST and PubTator3. No M
 | `pubmed_spell_check` | Query spelling correction (ESpell) |
 | `pubmed_europepmc_search` | Europe PMC search (MED/PMC/PPR/PAT/AGR, cursor paging; use when PubMed is too narrow — semantic/relation queries go to `pubtator_search`) |
 | `pubmed_europepmc_fetch` | Complete Europe PMC record (untruncated abstract) |
+| `pubmed_search_papers` | **Cross-source unified search**: one query across PubMed + Europe PMC, **deduplicated & merged** by DOI/PMID/normalized title (multi-platform hits rank first), `perSource` reports each platform's success/failure — for a single consolidated list on broad sweeps |
 | `pubmed_pubtator_annotate` | PubTator3 entity annotations (BioC JSON; Gene/Chemical/Disease/Mutation/CellLine/Species with concept IDs; accepts **PMIDs or PMCIDs** (mutually exclusive, PMC prefix normalized); `full:true` for full text; **auto-batches >100 ids**, session-cached) |
 | `pubmed_pubtator_entity_id` | Resolve a free-text bioconcept to concept IDs (autocomplete; e.g. IgA → ncbi_gene:973) |
 | `pubmed_pubtator_relations` | Curated bio-relations between concepts (treat/cause/inhibit/... with publication-count evidence; `evidence:true` attaches **supporting article PMIDs** to the first relations) |
 | `pubmed_pubtator_search` | PubTator3 **semantic / relation search**: free text / @entity IDs / boolean combos / `relations:type\|entityA\|entityB` (paginated, with year/journal/type facet stats; resolve @IDs via entity_id, feed hits into graph_add) |
+| `pubmed_search_s2` | Semantic Scholar **all-field search** (200M+ papers, not biomedical-only; includes citation counts and normalized IDs: DOI/PMID/ArXiv/CorpusId) |
+| `pubmed_get_s2_detail` | One paper's S2 detail (abstract / citation count / reference count; paperId accepts S2/DOI/PMID/ArXiv/CorpusId) — fastest way to attach a citation count to a known paper |
+| `pubmed_get_s2_citations` | Papers **citing** the given paper (S2 citation graph; PubMed itself has no citation data) |
+| `pubmed_get_s2_recommendations` | Paper **recommendations** ("papers others read alongside this one"; complements find_related's text similarity) |
+| `pubmed_match_paper_by_title` | **Exact title match** → DOI/PMID/citation count/metadata (higher-fidelity than fuzzy search when you hold the full title) |
 | `pubmed_graph_add` | **Incrementally** add one retrieval round into the current session knowledge graph (in-memory, per-session; heuristic relation edges + PubTator concept nodes & curated relations; curated edges carry `evidencePmids` by default — `PUBTATOR_EDGE_EVIDENCE:false` to disable; `dryRun:true` previews without mutating) |
 | `pubmed_graph_get` | Get the session / user graph (`format:'json'` nodes+edges, or `format:'mermaid'` colored flowchart card, NPG palette) |
 | `pubmed_graph_commit` | **Explicitly** merge the session graph into your persistent personal user graph (not automatic) |
@@ -46,15 +54,15 @@ Many users have no proxy — from v0.3.5 the plugin's resilience design keeps it
   - ⚠️ Limited: `find_related similar` (no EPM equivalent — explained in the error), `spell_check`, `lookup_mesh` (NCBI-only; errors carry actionable hints)
 - **Actionable errors**: network failures distinguish "your local proxy is down" (clean up `HTTPS_PROXY`) from "host unreachable" (retry / fallback / use a proxy) — no more bare `fetch failed`.
 - **Live-verified (09-01, no-proxy direct)**: **18/18 tools passed** (20/20 fully usable during open windows) — dual-source search, DOI round-trip, cited_by network, 40k-char full text, cross-tool cache hit (`cacheHits: 1`, zero network reuse), `evidencePmids` evidence edges, dryRun preview all normal.
-- For 100% stability a proxy is still recommended; self-hosted reverse-proxy users can look forward to `BASE_URL` configuration in v0.4.0 (planned).
+- For 100% stability a proxy is still recommended; self-hosted reverse-proxy users can point the plugin at their own endpoint via `EUTILS_BASE_URL` / `PUBTATOR_BASE_URL` / `EPMC_BASE_URL` (implemented in v0.4.0).
 
 ## 🧭 Agent routing skill (cross-session, auto-registered)
 
-The bundle ships `skills/dsh-pubmed/SKILL.md`: a 20-tool routing guide for agents
-(entry point by user phrasing, graph-chaining workflow, the three-way search
+The bundle ships `skills/dsh-pubmed/SKILL.md`: a 25-tool routing guide for agents
+(entry point by user phrasing, graph-chaining workflow, the four-way search
 boundary, rate-limit notes). **At plugin activation it self-registers into
 `~/.dsh/skills/dsh-pubmed/`** (a scanned DSH skill root) — clean installs need
-zero manual copying; fresh sessions can dispatch the three search families and
+zero manual copying; fresh sessions can dispatch the search families, S2 tools and
 the graph workflow without reading this README.
 
 - Content auto-updates on plugin upgrade (idempotent — written only when changed)
@@ -91,7 +99,7 @@ Paste either block below **as a whole** into a DSH session; the agent installs a
 - **Session-level · takes effect immediately (local source required)**:
 
 ````text
-[Please install the dsh-pubmed plugin (PubMed / Europe PMC search + knowledge graph, 20 tools)]
+[Please install the dsh-pubmed plugin (PubMed / Europe PMC search + knowledge graph + unified search + Semantic Scholar, 25 tools)]
 1) Locate the dsh-pubmed package directory (containing lib/pubmed-core.js). If it is not present locally, first run: git clone https://github.com/aiyacharley/dsh-pubmed.git; if you still cannot find it, ask me or search my workspace/user directory for "pubmed-core.js".
 2) Read lib/dynamic-wrapper.js in that directory as the code.host for cordis_define, replacing <DSH_PUBMED_CORE_PATH> with the absolute path to lib/pubmed-core.js and <DSH_PUBMED_DIR> with the dsh-pubmed package directory.
 3) Activate with cordis_run (mode=run).
@@ -142,6 +150,22 @@ Resolve this DOI to a PMCID / fetch the full text
 "Any articles connecting these two concepts?"
 → pubmed_pubtator_search({ query: '@DISEASE_COVID_19 AND @GENE_PON1' })          # boolean co-occurrence
 
+# —— Cross-source unified search (E3): one query over PubMed + Europe PMC, deduplicated ——
+"Search this direction comprehensively across both platforms"
+→ pubmed_search_papers({ query: 'gut microbiome AND metabolomics', maxResultsPerSource: 10 })
+
+# —— Semantic Scholar (E5): citation counts / recommendations / title match / all fields ——
+"How many citations does this paper have?"
+→ pubmed_get_s2_detail({ paperId: 'PMID:23193287' })
+"Any related-paper recommendations?"
+→ pubmed_get_s2_recommendations({ paperId: 'PMID:23193287' })
+"Which papers cite this one?"
+→ pubmed_get_s2_citations({ paperId: 'PMID:23193287' })
+"Resolve this title to its DOI and citation count"
+→ pubmed_match_paper_by_title({ title: '...' })
+"Search all fields (not biomedical-only)"
+→ pubmed_search_s2({ query: '...' })
+
 # —— Knowledge graph (AUTO_GRAPH on by default: fetching auto-merges) ——
 pubmed_fetch_articles({ pmids: [...] })                    # fetch → auto-merge into the session graph
 pubmed_graph_add({ articles: [...], dryRun: true })        # preview what WOULD be added — no mutation
@@ -161,16 +185,20 @@ pubmed_graph_reset({ scope: 'session' })                   # start over (or scop
 | **Novelty check** on an idea (negative results are informative) | `search` boolean `@A AND @B` — single-digit hits = potentially open direction |
 | **Review/project knowledge graph** (multi-round accumulation, visualize, persist) | `fetch_articles` (auto-merges) → `graph_commit` → `graph_get mermaid` |
 | Expand **from one known article** (similar/citing/references) | `find_related` (citation network, complements concept-based expansion) |
+| Need **citation counts / recommendations / title→ID matching / all-field search** | the 5 S2 tools: `get_s2_detail` / `get_s2_citations` / `get_s2_recommendations` / `match_paper_by_title` / `search_s2` |
+| Broad **cross-source sweep** (one deduplicated list) | `search_papers` (PubMed + Europe PMC merged) |
 | Add an **audit trail** to graph relation edges | `relations({ evidence: true })` or read `evidencePmids` on built edges |
 | Citations / ID conversion / fuzzy reference lookup / full-text reading | `format_citations` / `convert_ids` / `lookup_citation` / `fetch_fulltext` |
 
-**Choosing between the three searches** (the most common fork):
+**Choosing between the searches** (the most common fork):
 
 | Question shape | Use |
 |---|---|
 | Names a specific bioconcept or a drug/gene-disease relation, wants articles | `pubtator_search` (**preferred**: entity-normalized + relation-aware, synonym-immune) |
+| Wants **one deduplicated cross-source list** | `search_papers` (PubMed + Europe PMC merged) |
 | Needs field syntax / date ranges / publication-type filters | `pubmed_search_articles` (the only tool with full PubMed syntax) |
 | PubMed coverage too narrow (preprints/patents/non-journal) | `europepmc_search` → `europepmc_fetch` |
+| All fields / citation counts / recommendations / title match | the 5 S2 tools |
 
 ## ⚡ Why it saves time
 
@@ -181,7 +209,7 @@ In one sentence: **it turns manual database sifting into machine pre-screening +
 | Search precision | Keyword co-occurrence: synonym misses + irrelevant noise | Entity normalization (DOX/Adriamycin → MESH:D004317) + relation semantics (co-occurrence ≠ supporting a relation) |
 | Evidence chains | Read reviews → chase references by hand → track in Excel | `relations` skeleton → `evidence:true` for supporting PMIDs → auto-written onto graph edges — **auditable, reproducible, cumulative** |
 | Literature management | Flat lists (Zotero/Excel); relations live in your head | Incremental knowledge graph: entities deduped by authoritative ID, evidence-carrying edges, mermaid visualization (500 articles in 70 ms) |
-| Workflow coverage | Switching between PubMed / NLM / EBI | 20 tools chained inside one agent session: search → full text → citations → graph |
+| Workflow coverage | Switching between PubMed / NLM / EBI | 25 tools chained inside one agent session: search → full text → citations → graph |
 
 **The evidence chain, end to end** (every step has live-tested data behind it):
 
@@ -205,7 +233,7 @@ search → fetch articles → auto-graph (AUTO_GRAPH on by default) → incremen
 → visualize → explicit commit for persistence
 ```
 
-1. **Search**: pick by phrasing — entity/relation questions go through `pubmed_pubtator_search` (resolve @IDs first via `pubmed_pubtator_entity_id`); field-syntax queries via `pubmed_search_articles`; preprints etc. via `pubmed_europepmc_search`.
+1. **Search**: pick by phrasing — entity/relation questions go through `pubmed_pubtator_search` (resolve @IDs first via `pubmed_pubtator_entity_id`); field-syntax queries via `pubmed_search_articles`; preprints etc. via `pubmed_europepmc_search`; a deduplicated dual-source list via `pubmed_search_papers`; all-field/citations/recommendations/title-matching via the 5 Semantic Scholar tools.
 2. **Fetch**: `pubmed_fetch_articles({pmids})` for structured articles; **AUTO_GRAPH is ON by default** → auto-merges into the session graph.
 3. **Build** (two layers per article, `PUBTATOR` on by default):
    - **Heuristic layer** (always runs): keyword nodes (MeSH weighted + NLP noun phrases) + heuristic relation edges ("X regulates Y").
@@ -216,7 +244,7 @@ search → fetch articles → auto-graph (AUTO_GRAPH on by default) → incremen
 6. **Persist**: `pubmed_graph_commit` explicitly merges into your personal user graph (`~/.dsh/dsh-pubmed-graph.json`, persists across sessions).
 7. **Manage**: `pubmed_graph_get({scope:'user'})` to retrieve, `pubmed_graph_reset` to clear.
 
-> Data sources: NCBI E-utilities (search/metadata/MeSH/ID conversion/spell-check/full text), Europe PMC REST (search/full records), PubTator3 (entity annotations / concept IDs / curated relations).
+> Data sources: NCBI E-utilities (search/metadata/MeSH/ID conversion/spell-check/full text), Europe PMC REST (search/full records), PubTator3 (entity annotations / concept IDs / curated relations), Semantic Scholar (citation counts / recommendations / title match / all-field search).
 
 ## ⚙️ Configuration
 
@@ -232,6 +260,9 @@ DSH is launched):
     NCBI_API_KEY: '<your NCBI API key, optional>'
     AUTO_GRAPH: false        # optional: defaults to true; set false to disable auto-merge
     PUBTATOR: false          # optional: defaults to true (PubTator concept layer); set false for heuristic-only
+    S2_ENABLED: false        # optional: defaults to true (Semantic Scholar tools); set false to disable
+    # S2_API_KEY: '<free S2 key, optional>'
+    # EUTILS_BASE_URL / PUBTATOR_BASE_URL / EPMC_BASE_URL: self-hosted reverse-proxy endpoints (optional)
 ```
 
 | Setting | Effect |
@@ -241,6 +272,9 @@ DSH is launched):
 | `PUBTATOR` | **ON by default**: graph building auto-fetches PubTator3 concepts (with IDs) + curated relations; falls back to heuristic NLP when PubTator is unavailable; set `PUBTATOR: false` to fully disable the concept layer |
 | `NCBI_ADMIN_EMAIL` | Contact email recommended by NCBI (env) |
 | `EUROPEPMC_ENABLED` | Toggle the Europe PMC tools (env) |
+| `S2_ENABLED` | **ON by default**: the 5 Semantic Scholar tools; set `S2_ENABLED: false` to disable |
+| `S2_API_KEY` | Free S2 key: without one you share the anonymous limit (100 req / 5 min); with a key the queue speeds up to 1 req/s |
+| `EUTILS_BASE_URL` / `PUBTATOR_BASE_URL` / `EPMC_BASE_URL` | Self-hosted reverse-proxy endpoints (P3.8b): point each API family at your own endpoint to ride out regional connectivity windows |
 
 ### 🧬 Concept-graph notes
 
@@ -252,9 +286,12 @@ Without an API key the plugin serializes requests through a global ~350 ms queue
 (~2.8 req/s, under NCBI's 3 req/s); with `NCBI_API_KEY` the E-utilities queue
 auto-accelerates to ~120 ms (~8 req/s, under the 10 req/s cap). Parallel calls are serialized to avoid 429s.
 PubTator3 runs on its **own dedicated ~350 ms queue** (its official limit is 3 req/s, independent of any NCBI API key).
+Semantic Scholar runs on its **own dedicated queue**: ~3 s/request without a key (under the shared 100 req/5 min cap),
+~1.1 s/request with a free `S2_API_KEY` (1 req/s).
 
 ## 📜 Version history
 
+- **v0.4.0** (in development, unreleased) — **Ecosystem completion + configurable reverse proxy**: `pubmed_search_papers` cross-source unified search (PubMed + Europe PMC deduplicated & merged, `perSource` report); 5 Semantic Scholar tools (`search_s2` / `get_s2_detail` / `get_s2_citations` / `get_s2_recommendations` / `match_paper_by_title` — citation counts / recommendations / title match / all-field search); `fetch_fulltext` paging (`offset`/`maxCharacters`/`nextOffset`); configurable `EUTILS_BASE_URL`/`PUBTATOR_BASE_URL`/`EPMC_BASE_URL`; automatic npmmirror sync after publish (Chinese users get the new version within a minute).
 - **v0.3.9** (09-01) — **Removed deprecated `pubmed_extract_keywords`** (19 tools; keyword preview via `graph_add({dryRun:true})`); README/SKILL/cordis cleanup.
 - **v0.3.8** (09-01) — **P4 batch 2**: Europe PMC calls wrapped in the network retry layer; atomic user-graph write (tmp + rename, crash-safe); per-session graph write serialization (concurrent graph_add / AUTO_GRAPH / commit can no longer interleave); @-prefix auto-normalization for search/relations entity args; SKILL.md expansion (tool quick reference + config table + pitfall list); npm scripts (`npm test`) + Release workflow test gate; no-proxy live test: concurrent graph_adds serialized without interleaving, EPM/search dual-pass.
 - **v0.3.7** (09-01) — **P0 fix: large-scale graph building no longer times out**: mergeGraph batch-prefetch (200 articles drop from 200+ PubTator calls to 2) + probe/evidence budgets (default 8 articles per merge, configurable) + 150 s enrichment deadline with graceful truncation + `httpGet` timeouts actually enforced (graph_add 180 s / fetch_articles 120 s); fixed prefetch failures poisoning the session cache; no-proxy live test **18/18 passed**.
@@ -276,7 +313,7 @@ PubTator3 runs on its **own dedicated ~350 ms queue** (its official limit is 3 r
 
 - DSH (any deployment that supports Cordis bundles)
 - Node.js ≥ 20 (the bundle uses global `fetch`)
-- Outbound access to `eutils.ncbi.nlm.nih.gov`, `www.ncbi.nlm.nih.gov` (PubTator3) and `www.ebi.ac.uk`
+- Outbound access to `eutils.ncbi.nlm.nih.gov`, `www.ncbi.nlm.nih.gov` (PubTator3), `www.ebi.ac.uk` and `api.semanticscholar.org`
 
 ## 📄 License
 

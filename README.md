@@ -9,16 +9,17 @@
 
 以 [`@cyanheads/pubmed-mcp-server`](https://github.com/cyanheads/pubmed-mcp-server) 的核心 PubMed 能力
 为起点，移植并大幅扩展为 DSH 原生模型工具：搜索、文章元数据、全文、引用格式化、MeSH、ID 转换之外，
-新增**个人文献知识图谱**（会话/用户双图谱）与 **PubTator3 概念层**（带权威概念 ID 的实体 + curated 关系），
-共 19 个工具，直接对接 NCBI E-utilities、Europe PMC REST 与 PubTator3，无需额外的 MCP 客户端配置。
+新增**个人文献知识图谱**（会话/用户双图谱）、**PubTator3 概念层**（带权威概念 ID 的实体 + curated 关系）、
+**跨源统一检索**（PubMed + Europe PMC 去重合并）与 **Semantic Scholar 直连**（被引数 / 论文推荐 / 标题匹配 / 全领域检索），
+共 25 个工具，直接对接 NCBI E-utilities、Europe PMC REST、PubTator3 与 Semantic Scholar，无需额外的 MCP 客户端配置。
 
-## ✨ 功能（19 个工具）
+## ✨ 功能（25 个工具）
 
 | 工具 | 说明 |
 |---|---|
 | `pubmed_search_articles` | PubMed 检索（完整布尔/字段/日期语法；**关键词级**——实体与关系类问题优先 `pubtator_search`） |
 | `pubmed_fetch_articles` | 按 PMID 获取结构化文章（作者/摘要/MeSH/基金/DOI/PMCID；AUTO_GRAPH 默认开启时**自动并入会话图谱**，无需再 graph_add） |
-| `pubmed_fetch_fulltext` | PMC 全文（JATS → 分节正文，best-effort） |
+| `pubmed_fetch_fulltext` | PMC 全文（JATS → 分节正文，可 `offset`/`maxCharacters` 分页续读长文，best-effort） |
 | `pubmed_format_citations` | APA 7 / MLA 9 / BibTeX / RIS / Vancouver 引用 |
 | `pubmed_find_related` | 相似文献 / 引用 / 参考文献（ELink + ESummary） |
 | `pubmed_lookup_mesh` | MeSH 词表（树号 / 范围注释 / 入口词） |
@@ -27,10 +28,16 @@
 | `pubmed_spell_check` | 检索词拼写纠正（ESpell） |
 | `pubmed_europepmc_search` | Europe PMC 检索（MED/PMC/PPR/PAT/AGR，游标分页；PubMed 覆盖不足时用，语义/关系查询走 `pubtator_search`） |
 | `pubmed_europepmc_fetch` | Europe PMC 单条完整记录（含未截断摘要） |
+| `pubmed_search_papers` | **跨源统一检索**：一次查 PubMed + Europe PMC，按 DOI/PMID/规范化标题**去重合并排序**（双平台命中排前），`perSource` 报告各源成败——适合要"一份综合列表"的宽口径扫描 |
 | `pubmed_pubtator_annotate` | PubTator3 实体标注（BioC JSON，Gene/Chemical/Disease/Mutation/CellLine/Species，带概念 ID；收 **PMID 或 PMCID**（互斥，自动补 PMC 前缀）；可 `full:true` 全文；**>100 自动分批**，会话级缓存去重） |
 | `pubmed_pubtator_entity_id` | 自由文本生物概念 → 概念 ID（autocomplete，如 IgA → ncbi_gene:973） |
 | `pubmed_pubtator_relations` | 概念间 curated 关系（treat/cause/inhibit/...，带 publications 证据数；`evidence:true` 可为前几条关系附带**支持文献 PMIDs**） |
 | `pubmed_pubtator_search` | PubTator3 **语义/关系搜索**：自由文本 / @实体 ID / 布尔组合 / `relations:类型\|实体A\|实体B`（支持分页与年份/期刊/类型 facets 统计；实体 A 可来自 entity_id，命中 PMIDs 可喂给 graph_add） |
+| `pubmed_search_s2` | Semantic Scholar **全领域检索**（200M+ 论文，不限生物医学；含被引数、归一化 ID：DOI/PMID/ArXiv/CorpusId） |
+| `pubmed_get_s2_detail` | 单篇 S2 详情（摘要 / 被引数 / 参考文献数；paperId 支持 S2/DOI/PMID/ArXiv/CorpusId）——快速给已知论文补被引数 |
+| `pubmed_get_s2_citations` | **引用该篇的文章列表**（S2 引文图；PubMed 生态本身没有被引数据） |
+| `pubmed_get_s2_recommendations` | **论文推荐**（"读了这篇还读哪些"，与 find_related 的文本相似互补） |
+| `pubmed_match_paper_by_title` | **标题精确匹配** → DOI/PMID/被引数/元数据（已持有完整标题时比模糊搜索更准） |
 | `pubmed_graph_add` | 把一轮检索文章**增量并入当前会话知识图谱**（内存、按会话隔离；含启发式关系边 + PubTator 概念节点与 curated 关系；关系边默认带 `evidencePmids` 证据文献，`PUBTATOR_EDGE_EVIDENCE:false` 可关；`dryRun:true` 只预览不落盘） |
 | `pubmed_graph_get` | 查询会话 / 用户知识图谱（`format:'json'` 节点+边，或 `format:'mermaid'` 彩色流程图卡片，NPG 配色） |
 | `pubmed_graph_commit` | **显式**把会话图谱并入持久化的个人用户图谱（默认不自动加入） |
@@ -65,7 +72,7 @@ dsh plugin --profile web add dsh-pubmed@latest              # 从 npm 安装（�
 - **会话级 · 当前会话立即生效（需本机有源码）**：
 
 ````text
-【请帮我安装 dsh-pubmed 插件（PubMed / Europe PMC 检索 + 知识图谱，20 个工具）】
+【请帮我安装 dsh-pubmed 插件（PubMed / Europe PMC 检索 + 知识图谱 + 统一搜索 + Semantic Scholar，25 个工具）】
 1) 先定位 dsh-pubmed 包目录（含 lib/pubmed-core.js）。若本机还没有，先 git clone https://github.com/aiyacharley/dsh-pubmed.git；找不到就问我。
 2) 读取该目录 lib/dynamic-wrapper.js 作为 cordis_define 的 code.host，并把 <DSH_PUBMED_CORE_PATH> 替换为 lib/pubmed-core.js 的绝对路径、<DSH_PUBMED_DIR> 替换为 dsh-pubmed 包目录。
 3) cordis_run 激活（mode=run）。
@@ -116,6 +123,22 @@ dsh plugin --profile web add dsh-pubmed@latest              # 从 npm 安装（�
 "这两个概念之间有没有关联的文章？"
 → pubmed_pubtator_search({ query: '@DISEASE_COVID_19 AND @GENE_PON1' })         # 布尔共现
 
+# —— 跨源统一检索（E3）：一次查 PubMed + Europe PMC，去重合并 ——
+"帮我综合搜一下这个方向，双平台都查"
+→ pubmed_search_papers({ query: 'gut microbiome AND metabolomics', maxResultsPerSource: 10 })
+
+# —— Semantic Scholar（E5）：被引数 / 推荐 / 标题匹配 / 全领域 ——
+"这篇文章被引了多少次？"
+→ pubmed_get_s2_detail({ paperId: 'PMID:23193287' })
+"有没有推荐的相关论文？"
+→ pubmed_get_s2_recommendations({ paperId: 'PMID:23193287' })
+"谁引用了这篇？"
+→ pubmed_get_s2_citations({ paperId: 'PMID:23193287' })
+"根据标题找到这篇论文的 DOI 和被引数"
+→ pubmed_match_paper_by_title({ title: '...' })
+"搜全领域（不限于生物医学）"
+→ pubmed_search_s2({ query: '...' })
+
 # —— 知识图谱（AUTO_GRAPH 默认开：fetch 即自动入图）——
 pubmed_fetch_articles({ pmids: [...] })                   # 取文章 → 自动并入会话图谱
 pubmed_graph_add({ articles: [...], dryRun: true })       # 只想预览会新增什么？不落盘
@@ -135,16 +158,20 @@ pubmed_graph_reset({ scope: 'session' })                  # 清空重来（或 s
 | **检验选题新颖性**（负结果也有价值） | `search` 布尔组合 `@A AND @B`——命中个位数 = 可能是空白方向 |
 | **综述/项目知识图谱**（多轮文献累积、可视化、持久化） | `fetch_articles`（自动入图）多轮 → `graph_commit` → `graph_get mermaid` |
 | 从一篇文章**顺藤摸瓜**（相似/被引/参考文献） | `find_related`（引文网络，与概念级扩图互补） |
+| 要**被引数 / 论文推荐 / 标题→ID 精确匹配 / 全领域检索** | S2 五工具：`get_s2_detail` / `get_s2_citations` / `get_s2_recommendations` / `match_paper_by_title` / `search_s2` |
+| 宽口径**跨源综合扫描**（一份去重后的双源列表） | `search_papers`（PubMed + Europe PMC 合并） |
 | 给图谱里的关系边**补审计证据** | `relations({ evidence: true })` 或直接看建图边的 `evidencePmids` |
 | 引用格式 / ID 互换 / 残缺引文定位 / 全文精读 | `format_citations` / `convert_ids` / `lookup_citation` / `fetch_fulltext` |
 
-**三类搜索怎么选**（最常见的分岔口）：
+**四类搜索怎么选**（最常见的分岔口）：
 
 | 问题形态 | 用哪个 |
 |---|---|
 | 提到具体生物实体或药-病关系，要文献 | `pubtator_search`（**首选**：实体归一化 + 关系语义，同义词噪音免疫） |
+| 要**一份双源去重后的综合列表** | `search_papers`（跨 PubMed + Europe PMC 合并去重） |
 | 需要字段语法/日期范围/出版类型过滤 | `pubmed_search_articles`（唯一支持完整 PubMed 语法） |
 | PubMed 覆盖不足（预印本/专利/非期刊） | `europepmc_search` → `europepmc_fetch` |
+| 全领域 / 被引数 / 推荐 / 标题匹配 | S2 五工具 |
 
 ## ⚡ 为什么提效
 
@@ -155,7 +182,7 @@ pubmed_graph_reset({ scope: 'session' })                  # 清空重来（或 s
 | 检索精度 | 关键词共现：同义词漏检 + 无关噪音混入 | 实体归一化（DOX/Adriamycin/阿霉素 → MESH:D004317）+ 关系语义（共现≠支持关系） |
 | 证据链条 | 读综述 → 手工追参考文献 → Excel 记录 | `relations` 骨架 → `evidence:true` 拿支持文献 PMIDs → 自动写入图谱边，**可审计、可复现、可累积** |
 | 文献管理 | 平铺列表（Zotero/Excel），文章间关系靠脑子记 | 增量知识图谱：实体按权威 ID 去重、关系边带证据、mermaid 可视化（500 篇 70ms） |
-| 流程覆盖 | PubMed / NLM / EBI 多网站来回切换 | 20 个工具在同一 agent 会话内联动，检索→全文→引用→图谱一条链 |
+| 流程覆盖 | PubMed / NLM / EBI 多网站来回切换 | 25 个工具在同一 agent 会话内联动，检索→全文→引用→图谱一条链 |
 
 **证据链一条龙**（每一步都有实测数据支撑）：
 
@@ -178,8 +205,9 @@ flowchart LR
 检索 → 取文章 → 自动建图（AUTO_GRAPH 默认开）→ 多轮增量累积 → 可视化 → 显式 commit 持久化
 ```
 
-1. **检索**：按话术三选一——实体/关系类问题走 `pubmed_pubtator_search`（先 `pubmed_pubtator_entity_id` 解析 @ID）；
-   字段语法查询走 `pubmed_search_articles`；预印本等走 `pubmed_europepmc_search`。
+1. **检索**：按话术四选一——实体/关系类问题走 `pubmed_pubtator_search`（先 `pubmed_pubtator_entity_id` 解析 @ID）；
+   字段语法查询走 `pubmed_search_articles`；预印本等走 `pubmed_europepmc_search`；要双源综合列表走 `pubmed_search_papers`；
+   全领域 / 被引数 / 推荐 / 标题匹配走 Semantic Scholar 五工具。
 2. **取文章**：`pubmed_fetch_articles({pmids})` 拿结构化文章；**AUTO_GRAPH 默认开** → 自动并入会话图谱。
 3. **建图**（每篇双层，`PUBTATOR` 默认开）：
    - **启发式层**（永远跑）：关键词节点（MeSH 加权 + NLP 名词短语）+ 启发式关系边（"X 调控 Y"）。
@@ -190,7 +218,7 @@ flowchart LR
 6. **持久化**：`pubmed_graph_commit` 显式并入用户图谱（`~/.dsh/dsh-pubmed-graph.json`，跨会话保留）。
 7. **管理**：`pubmed_graph_get({scope:'user'})` 取回，`pubmed_graph_reset` 清空。
 
-> 数据源：NCBI E-utilities（检索/元数据/MeSH/ID转换/拼写/全文）、Europe PMC REST（检索/完整记录）、PubTator3（实体标注/概念ID/curated 关系）。
+> 数据源：NCBI E-utilities（检索/元数据/MeSH/ID转换/拼写/全文）、Europe PMC REST（检索/完整记录）、PubTator3（实体标注/概念ID/curated 关系）、Semantic Scholar（被引数/推荐/标题匹配/全领域检索）。
 
 ## ⚙️ 配置
 
@@ -205,6 +233,9 @@ bundle 运行时无需配置即可使用。可选配置项（**推荐写进 prof
     NCBI_API_KEY: '<你的 NCBI API key，可选>'
     AUTO_GRAPH: false        # 可选：默认 true（开启）；设 false 关闭自动并入会话图谱
     PUBTATOR: false          # 可选：默认 true（PubTator 概念层开启）；设 false 只走启发式关键词/关系
+    S2_ENABLED: false        # 可选：默认 true（Semantic Scholar 五工具开启）；设 false 关闭
+    # S2_API_KEY: '<免费 S2 key，可选>'
+    # EUTILS_BASE_URL / PUBTATOR_BASE_URL / EPMC_BASE_URL：自建反代端点（可选）
 ```
 
 | 配置项 | 作用 |
@@ -214,6 +245,9 @@ bundle 运行时无需配置即可使用。可选配置项（**推荐写进 prof
 | `PUBTATOR` | **默认开启（true）**：建图时自动拉 PubTator3 概念（带 ID）+ curated 关系；PubTator 不可用时自动降级回启发式；设 `PUBTATOR: false` 完全关闭概念层 |
 | `NCBI_ADMIN_EMAIL` | NCBI 建议的联系邮箱（环境变量） |
 | `EUROPEPMC_ENABLED` | 控制 Europe PMC 相关工具（环境变量） |
+| `S2_ENABLED` | **默认开启（true）**：Semantic Scholar 五工具开关；`S2_ENABLED: false` 关闭 |
+| `S2_API_KEY` | 免费 S2 key：无 key 走共享限流（100 req/5min），有 key 提速至 1 req/s |
+| `EUTILS_BASE_URL` / `PUBTATOR_BASE_URL` / `EPMC_BASE_URL` | 自建反代端点（P3.8b）：把 E-utilities / PubTator3 / Europe PMC 家族指到你自己的反向代理，扛区域网络波动 |
 
 ### 🧬 概念图谱说明
 
@@ -224,6 +258,7 @@ bundle 运行时无需配置即可使用。可选配置项（**推荐写进 prof
 无 API key 时插件内置**全局 ~350ms 请求队列**（≈2.8 req/s，低于 NCBI 3 req/s）；配置 `NCBI_API_KEY`
 后 E-utilities 队列自动提速至 **~120ms（≈8 req/s，低于 10 req/s 上限）**。并行调用也会串行化，避免 429。
 PubTator3 走**独立的 ~350ms 专用队列**（其官方限额为 3 req/s，与 NCBI API key 无关），不会随 API key 提速。
+Semantic Scholar 走**独立的专用队列**：无 key ≈3s/次（低于共享 100 req/5min），配免费 `S2_API_KEY` 提速至 ~1.1s/次（1 req/s）。
 
 ## 🌐 无代理网络（大陆直连）
 
@@ -236,14 +271,14 @@ PubTator3 走**独立的 ~350ms 专用队列**（其官方限额为 3 req/s，�
   - ⚠️ 受限：`find_related similar`（EBI 无对等接口，报错说明）、`spell_check`、`lookup_mesh`（NCBI 独有，报错含可行动提示）
 - **可行动报错**：网络失败自动区分"本地代理已挂"（提示清理 `HTTPS_PROXY`）与"目标不可达"（建议重试 / 降级 / 配代理），不再抛裸 `fetch failed`。
 - **实测（09-01，无代理直连）**：**18/18 工具全通过**（直连窗口期 20/20 全可用）——双源检索、DOI 回路、cited_by 引文网络、4 万字符全文、跨工具缓存命中（`cacheHits: 1` 零网络复用）、`evidencePmids` 证据边、dryRun 预览均正常。
-- 想要 100% 稳定仍推荐开代理；自建反代用户可期待 v0.4.0 的 `BASE_URL` 可配置（计划中）。
+- 想要 100% 稳定仍推荐开代理；自建反代用户可配 `EUTILS_BASE_URL` / `PUBTATOR_BASE_URL` / `EPMC_BASE_URL`（v0.4.0 已实现）。
 
 ## 🧭 Agent 路由技能（跨会话，自动注册）
 
-随包附带 `skills/dsh-pubmed/SKILL.md`：一份给 agent 看的 20 工具路由指南（按话术选入口、
-建图链路组合流、三类搜索边界、限速常识）。**插件激活时自动把它注册到 `~/.dsh/skills/dsh-pubmed/`**
+随包附带 `skills/dsh-pubmed/SKILL.md`：一份给 agent 看的 25 工具路由指南（按话术选入口、
+建图链路组合流、四类搜索边界、限速常识）。**插件激活时自动把它注册到 `~/.dsh/skills/dsh-pubmed/`**
 （被 DSH 扫描的技能 root）——纯净安装零手工，新会话的 agent 无需阅读本文档即可正确调度
-三套检索与建图工具。
+多套检索、S2 与建图工具。
 
 - 内容随版本升级自动改写（幂等，仅内容变化时写入）
 - 关闭：patch config `SKILL_DOC: false`（或环境变量 `SKILL_DOC=0`）
@@ -252,6 +287,7 @@ PubTator3 走**独立的 ~350ms 专用队列**（其官方限额为 3 req/s，�
 
 ## 📜 版本历史
 
+- **v0.4.0**（开发中，未发布）— **生态补全 + 反代可配**：`pubmed_search_papers` 跨源统一检索（PubMed + Europe PMC 去重合并排序，`perSource` 报告）；Semantic Scholar 五工具（`search_s2` / `get_s2_detail` / `get_s2_citations` / `get_s2_recommendations` / `match_paper_by_title`，补被引数/推荐/标题匹配/全领域检索）；`fetch_fulltext` 分页切片（`offset`/`maxCharacters`/`nextOffset`）；`EUTILS_BASE_URL`/`PUBTATOR_BASE_URL`/`EPMC_BASE_URL` 反代可配；发布后自动同步 npmmirror（国内 1 分钟内可装新版）。
 - **v0.3.9**（09-01）— **移除已废弃的 `pubmed_extract_keywords`**（19 工具；关键词预览用 `graph_add({dryRun:true})`）；README/SKILL/cordis 同步清理。
 - **v0.3.8**（09-01）— **P4 批次二**：Europe PMC 调用套网络重试层；用户图谱原子写（tmp+rename，防崩溃损坏）；图写入按会话串行化（并发 graph_add / AUTO_GRAPH / commit 不再交错）；search/relations 实体参数 @ 前缀自动归一化；SKILL.md 扩充（工具速查表 + 配置项表 + 易错点清单）；npm scripts（`npm test`）+ Release workflow 测试门；无代理实测：并发 graph_add 串行无交错、EPM/search 双通。
 - **v0.3.7**（09-01）— **P0 修复：大规模建图不再超时**：mergeGraph 批量预取（200 篇从 200+ 次 PubTator 调用降到 2 次）+ 探测/证据预算（默认 8 篇/次合并，可配置）+ 富集 150s 死线优雅截断 + `httpGet` 超时真正生效（graph_add 180s / fetch_articles 120s）；修复预取失败污染会话缓存；无代理实测 **18/18 通过**。
@@ -273,7 +309,7 @@ PubTator3 走**独立的 ~350ms 专用队列**（其官方限额为 3 req/s，�
 
 - DSH 版本（任意支持 Cordis bundle 的部署）
 - Node.js ≥ 20（bundle 使用全局 `fetch`）
-- 出网可访问 `eutils.ncbi.nlm.nih.gov`、`www.ncbi.nlm.nih.gov`（PubTator3）与 `www.ebi.ac.uk`
+- 出网可访问 `eutils.ncbi.nlm.nih.gov`、`www.ncbi.nlm.nih.gov`（PubTator3）、`www.ebi.ac.uk` 与 `api.semanticscholar.org`
 
 ## 📄 License
 
