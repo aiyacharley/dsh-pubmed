@@ -53,13 +53,23 @@
 
 ## 2. 计划中（v0.4.0 及以后）
 
-### 2.1 P2 收官（出自 01 分册 §4，详细设计已定稿）
+### 2.1 P2 收官（⏸️ 已搁置，2026-09-02 实测决策）
 
-| 项 | 内容 | 出处 | 规模 |
-|---|---|---|---|
-| **P2 `pubmed_pubtator_annotate_text`** | 原始文本标注（两步异步 POST + sessionId 轮询续取）——19 个工具的输入都是文献标识符，P2 是唯一以**自有文本**为输入的工具：笔记/草稿/综述段落直接抽实体入图谱 | 01 分册 §4 P2.0–P2.8 | 1–1.5d |
-| P3.8b | `PUBTATOR_BASE_URL` / `EUTILS_BASE_URL` 可配置（自建反代口子） | 01 分册 §3 | 0.25d |
-| transport 扩展 | httpPost（form-urlencoded）+ 轮询器（1s 起步 1.5 倍退避 cap 5s） | 01 分册 §4 P2.2/P2.4 | 随 P2 |
+> **搁置原因（实测坐实）**：PubTator 任意文本标注的两步 RESTful 服务**当前后端故障**——
+> `request.cgi` 提交正常（200 + session id），但 `retrieve.cgi` 对一切请求返回通用 400
+> HTML 错误页（文档规定未就绪应为 404 + "[Warning] : The Result is not ready"）。
+> 已排除调用侧因素：真假 session id、单/多 bioconcept、GET/POST、路径风格、尾斜杠、
+> Content-Type 变体全部 400；多轮跨时段复测一致。其余候选路由同样不可用
+> （tmTool.cgi 500、`/research/bionlp/` 已 Django 表单化、PTC 文档指向的
+> `pubtator-api/annotations` 端点 404）。结论：**上游服务故障，非调用侧问题**。
+> 01 分册 §7 风险条款（"SLA 弱于主站"）提前命中。恢复后按 01 分册 §4 P2.0–P2.8
+> 原设计实施即可（协议有官方背书，设计不需改动）。
+
+| 项 | 内容 | 出处 | 规模 | 状态 |
+|---|---|---|---|---|
+| **P2 `pubmed_pubtator_annotate_text`** | 原始文本标注（两步异步 POST + sessionId 轮询续取） | 01 分册 §4 P2.0–P2.8 | 1–1.5d | ⏸️ 搁置（待上游恢复） |
+| P3.8b | `PUBTATOR_BASE_URL` / `EUTILS_BASE_URL` 可配置（自建反代口子） | 01 分册 §3 | 0.25d | 待实现 |
+| transport 扩展 | httpPost（form-urlencoded）+ 轮询器 | 01 分册 §4 P2.2/P2.4 | 随 P2 | ⏸️ 随 P2 搁置 |
 
 ### 2.2 生态补全（⭐ 新增，出处：dsh-ai4scholar 仓库逆向学习）
 
