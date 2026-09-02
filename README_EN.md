@@ -380,7 +380,7 @@ dsh plugin --profile web update dsh-pubmed@0.4.0
 
 ## Version history
 
-- **v0.4.0** (in development) — **Ecosystem completion + configurable reverse proxy**: `pubmed_search_papers`
+- **v0.4.0** — **Ecosystem completion + configurable reverse proxy**: `pubmed_search_papers`
   cross-source unified search (deduped & merged, `perSource` report); 5 Semantic Scholar tools (citation
   counts / recommendations / title match / all-field); `fetch_fulltext` paging slices; configurable
   `EUTILS_BASE_URL` / `PUBTATOR_BASE_URL` / `EPMC_BASE_URL`; automatic npmmirror sync after publish

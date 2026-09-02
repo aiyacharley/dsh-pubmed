@@ -72,7 +72,7 @@ dsh-pubmed v0.2.1 已集成 PubTator3 的三个点状 API（标注导出 / 实�
 | ✅ P3.5 | 真机验证发现的 3 个存量小瑕疵（自环边 / 空 ID 概念 / mermaid classDef 错位，见 §2.3） | 改 core | 数据质量与渲染正确性 | 0.25d | ✅ 已完成（v0.3.3） |
 | ✅ P3.7 | 精简合并：`extract_keywords` 废弃 → `graph_add({dryRun:true})` 预览；nlp.js 懒加载降级（compromise 缺失不炸 bundle 加载）；mesh/entity_id 描述互指 | 改 core + nlp | 工具语义更干净、加载更健壮 | 0.25d | ✅ 已完成（v0.3.3） |
 | ✅ P3.8a | **无代理韧性**：网络类失败自动退避重试（1s/3s）+ EBI 降级链（search/convert_ids/find_related → Europe PMC）+ 可行动报错（死代理 vs 不可达）；设计依据见 §7.1 | 改 core | 大陆无代理用户从 2/20 可用工具提升到 ~13/20，瞬时黑洞无感恢复 | 1d | ✅ 已完成（v0.3.5） |
-| ✅ P3.8b | `EUTILS_BASE_URL` / `PUBTATOR_BASE_URL` / `EPMC_BASE_URL` 可配置（自建反代口子，三族统一收敛为常量；P2 request.cgi 同步受益） | 改 core + index.js | 高级用户自建通道 | 0.25d | ✅ 已完成（v0.4.0 开发中） |
+| ✅ P3.8b | `EUTILS_BASE_URL` / `PUBTATOR_BASE_URL` / `EPMC_BASE_URL` 可配置（自建反代口子，三族统一收敛为常量；P2 request.cgi 同步受益） | 改 core + index.js | 高级用户自建通道 | 0.25d | ✅ 已完成（v0.4.0） |
 | ✅ P3.9 | 技能文档自注册：插件激活时把 SKILL.md 写入 `~/.dsh/skills/dsh-pubmed/`（幂等 + 版本感知 + `SKILL_DOC:false` 开关）；发布自动化 workflow（push tag → Release 挂 tgz → NPM_TOKEN 配置后自动 publish） | 改 index.js + 新增 workflow | 纯净安装零手工；发布全自动化 | 0.5d | ✅ 已完成（v0.3.6） |
 | ✅ **P4** | **优化评审系列（代码精简/流程规范/文档/工程化，20 项外部意见逐条核定）** | 见 [`02_optimization-review.md`](02_optimization-review.md) | 批次一含 P0 级 mergeGraph 批量化 | 2–3d | ✅ 批次一 v0.3.7 / 批次二 v0.3.8 / 清理 v0.3.9 |
 | ⏸️ **P2** | **`pubmed_pubtator_annotate_text` 原始文本标注** | 新工具 + transport 扩展 | 独有差异化能力（自有文本入图谱/稿件检查） | 1–1.5d | ⏸️ 搁置（上游 retrieve.cgi 故障，2026-09-02 实测坐实）；恢复后单独发布 |
@@ -224,7 +224,7 @@ register('pubmed_pubtator_relation_evidence', '…', {
       direct-first + 代理回退结构；`Content-Type: application/x-www-form-urlencoded`
 - [ ] `lib/dynamic-wrapper.js`：curl 版 `httpPost`（`curl -X POST -d ...`），注入点同步
 - [ ] 两处 deps 注入均加 `httpPost`；core 内 `httpGet`/`httpPost` 并存，互不影响
-- [ ] 回归：dynamic 模式现有 20 工具不受影响（GET 路径零改动）
+- [ ] 回归：dynamic 模式现有工具不受影响（GET 路径零改动）
 
 #### P2.3 工具签名（定稿草案）
 
@@ -311,7 +311,7 @@ register('pubmed_pubtator_annotate_text', '…', {
 | **v0.3.7** | ✅ P4 批次一（mergeGraph 批量化 / 删 ncbiPace×3 / 共享词表 / parseBool / 幽灵配置实现 / fulltext 互斥 / patch 注释 / files 加 docs） | 全套 14/14 测试 + 无代理真机 20 篇复测通过（106 概念入图、19 证据边、零超时）；npm 自动发布验证成功 |
 | **v0.3.8** | ✅ P4 批次二（EPM 重试 / 原子写 / 图写串行化 / @ 归一化 / SKILL 扩充 / npm scripts + CI 测试门） | 全套测试绿；npm publish 成功（npmmirror 同步延迟成真痛点 → E1 立项） |
 | **v0.3.9** | ✅ 移除已废弃的 `pubmed_extract_keywords`（20→19 工具） | 工具数与 README/SKILL/cordis 同步清理 |
-| **v0.4.0**（开发中） | **E1**（npmmirror 同步）+ **E2**（全文分页）+ **E3/E4**（`pubmed_search_papers` 统一检索）+ **E5**（S2 五工具）+ **P3.8b** BASE_URL（已本地实现）；P2 annotate_text **因上游故障搁置** | 全套离线 16/16 绿（含 e-items/s2 新测试）；发布后 npmmirror 1 分钟内可查；P2 待上游恢复后按 §4 P2.8 实施 |
+| **v0.4.0**（已发布） | **E1**（npmmirror 同步）+ **E2**（全文分页）+ **E3/E4**（`pubmed_search_papers` 统一检索）+ **E5**（S2 五工具）+ **P3.8b** BASE_URL（已本地实现）；P2 annotate_text **因上游故障搁置** | 全套离线 16/16 绿（含 e-items/s2 新测试）；发布后 npmmirror 1 分钟内可查；P2 待上游恢复后按 §4 P2.8 实施 |
 
 ## 6. 测试计划
 

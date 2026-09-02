@@ -9,13 +9,13 @@
 
 | | |
 |---|---|
-| 当前版本 | v0.3.9（npm latest）· 19 工具 |
-| 下一版本 | **v0.4.0 = 生态补全版**（P2 annotate_text 因上游故障搁置，恢复后按 01 分册 §4 实施） |
+| 当前版本 | v0.4.0（npm latest）· 25 工具 |
+| 下一版本 | v0.4.x：P2 annotate_text（待上游恢复）+ 缓议项按需捞取 |
 | 维护原则 | 免费直连（不引入付费代理）；纯 JS 免构建；离线测试全覆盖；发布全自动 |
 
 ---
 
-## 1. 已完成（v0.1.0 → v0.3.9）
+## 1. 已完成（v0.1.0 → v0.4.0）
 
 ### 1.1 功能主线（出自 01 分册，P0–P3.9）
 
@@ -49,21 +49,21 @@
 - 无代理真机复测多轮：20 篇建图 106 概念入图 / 并发 graph_add 串行无交错 / EPM 双通 / @ 归一化
 - 发布自动化三连验证：push tag → Actions 测试 → Release 挂 tgz → NPM_TOKEN 自动 publish
 
-### 1.4 生态补全（v0.4.0 开发中 · 本地已实现，待发布）
+### 1.4 生态补全（v0.4.0 已发布）
 
 | 项 | 内容 | 版本 | 状态 |
 |---|---|---|---|
-| P3.8b | `EUTILS_BASE_URL` / `PUBTATOR_BASE_URL` / `EPMC_BASE_URL` 反代可配（三族 URL 统一收敛为常量，替换全部硬编码点） | v0.4.0 | ✅ 本地已实现 |
-| E1 | npmmirror 主动同步（`scripts/sync-mirror.mjs`，发布后国内 1 分钟内可装；release.yml 挂钩，绝不失败发布） | v0.4.0 | ✅ 本地已实现 |
-| E2 | `fetch_fulltext` 分页切片（`offset`/`maxCharacters`/`nextOffset`）+ "exactly one group" 互斥运行时强制 | v0.4.0 | ✅ 本地已实现 |
-| E3/E4 | `pubmed_search_papers` 双源统一检索：titleKey（NFKC/码点切片 120/短标题 12 守卫）去重合并排序，perSource 报告 | v0.4.0 | ✅ 本地已实现 |
-| E5 | Semantic Scholar 直连五工具（`search_s2` / `get_s2_detail` / `get_s2_citations` / `get_s2_recommendations` / `match_paper_by_title`）；`S2_ENABLED` 门控 + 专用限速队列（无 key 3s/次 < 共享 100req/5min，有 key 1.1s/次） | v0.4.0 | ✅ 本地已实现 |
+| P3.8b | `EUTILS_BASE_URL` / `PUBTATOR_BASE_URL` / `EPMC_BASE_URL` 反代可配（三族 URL 统一收敛为常量，替换全部硬编码点） | v0.4.0 | ✅ v0.4.0 |
+| E1 | npmmirror 主动同步（`scripts/sync-mirror.mjs`，发布后国内 1 分钟内可装；release.yml 挂钩，绝不失败发布） | v0.4.0 | ✅ v0.4.0 |
+| E2 | `fetch_fulltext` 分页切片（`offset`/`maxCharacters`/`nextOffset`）+ "exactly one group" 互斥运行时强制 | v0.4.0 | ✅ v0.4.0 |
+| E3/E4 | `pubmed_search_papers` 双源统一检索：titleKey（NFKC/码点切片 120/短标题 12 守卫）去重合并排序，perSource 报告 | v0.4.0 | ✅ v0.4.0 |
+| E5 | Semantic Scholar 直连五工具（`search_s2` / `get_s2_detail` / `get_s2_citations` / `get_s2_recommendations` / `match_paper_by_title`）；`S2_ENABLED` 门控 + 专用限速队列（无 key 3s/次 < 共享 100req/5min，有 key 1.1s/次） | v0.4.0 | ✅ v0.4.0 |
 | 测试 | `test/e-items-test.mjs`（E1–E4，13 断言）+ `test/s2-test.mjs`（E5，14 断言） | v0.4.0 | ✅ |
-| 文档 | SKILL/README/README_EN/cordis/index.js 同步到 25 工具 + 新配置 + 新路由 | v0.4.0 | ✅ 本地已实现 |
+| 文档 | SKILL/README/README_EN/cordis/index.js 同步到 25 工具 + 新配置 + 新路由 | v0.4.0 | ✅ v0.4.0 |
 
 ---
 
-## 2. 计划中（v0.4.0 及以后）
+## 2. 计划中（v0.4.x 及以后）
 
 ### 2.1 P2 收官（⏸️ 已搁置，2026-09-02 实测决策）
 
@@ -88,7 +88,7 @@
 > 参考仓库：`literaf/dsh-ai4scholar`（本地 `../dsh-ai4scholar/`），38 工具付费代理插件。
 > **核心洞察：它的 PubMed 全部走 `ai4scholar.net` 自有云端代理，根本不直连 NCBI——这就是"感觉不到黑洞"的真正原因。** 免费直连是 dsh-pubmed 的定位，代理模式不抄；但以下工程模式值得吸收：
 >
-> **更新：E1–E5 已全部实现于 v0.4.0 开发中版本（见 §1.4），下表保留为出处/规模参考。**
+> **更新：E1–E5 已随 v0.4.0 发布（见 §1.4），下表保留为出处/规模参考。**
 
 | 项 | 内容 | 参考出处（dsh-ai4scholar 源码） | 规模 |
 |---|---|---|---|

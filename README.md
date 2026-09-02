@@ -356,7 +356,7 @@ dsh plugin --profile web update dsh-pubmed@0.4.0
 
 ## 版本历史
 
-- **v0.4.0**（开发中）— **生态补全 + 反代可配**：`pubmed_search_papers` 跨源统一检索（去重合并 + perSource 报告）；Semantic Scholar 五工具（被引数 / 推荐 / 标题匹配 / 全领域）；`fetch_fulltext` 分页切片；`EUTILS_BASE_URL` / `PUBTATOR_BASE_URL` / `EPMC_BASE_URL` 可配；发布后自动同步 npmmirror（国内 1 分钟内可装）。
+- **v0.4.0** — **生态补全 + 反代可配**：`pubmed_search_papers` 跨源统一检索（去重合并 + perSource 报告）；Semantic Scholar 五工具（被引数 / 推荐 / 标题匹配 / 全领域）；`fetch_fulltext` 分页切片；`EUTILS_BASE_URL` / `PUBTATOR_BASE_URL` / `EPMC_BASE_URL` 可配；发布后自动同步 npmmirror（国内 1 分钟内可装）。
 - **v0.3.9** — 移除已废弃的 `pubmed_extract_keywords`（19 工具）；README/SKILL/cordis 清理。
 - **v0.3.8** — P4 批次二：Europe PMC 网络重试层；用户图谱原子写（防崩溃损坏）；图写入按会话串行化；@ 前缀自动归一化；SKILL 扩充；npm scripts + CI 测试门。
 - **v0.3.7** — P0 修复：大规模建图不再超时（mergeGraph 批量预取 200 篇 200+ 次调用 → 2 次；探测/证据预算；富集 150s 死线；httpGet 超时真正生效）。
