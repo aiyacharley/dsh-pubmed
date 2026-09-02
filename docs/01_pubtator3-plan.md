@@ -2,7 +2,7 @@
 
 | 项 | 内容 |
 |---|---|
-| 状态 | 草案 v1（待评审） |
+| 状态 | P0–P3.9 已实施 ✅；P2（annotate_text）⏸️ 搁置待上游恢复；E1–E5 生态项见 [`00_roadmap.md`](00_roadmap.md) §1.4 |
 | 日期 | 2025-06 |
 | 影响版本 | v0.3.0 / v0.3.1 / v0.4.0 |
 | 涉及文件 | `lib/pubmed-core.js`、`lib/index.js`、`lib/dynamic-wrapper.js`、`test/*.mjs`、`README*.md`、`CHANGELOG.md` |
@@ -72,10 +72,10 @@ dsh-pubmed v0.2.1 已集成 PubTator3 的三个点状 API（标注导出 / 实�
 | ✅ P3.5 | 真机验证发现的 3 个存量小瑕疵（自环边 / 空 ID 概念 / mermaid classDef 错位，见 §2.3） | 改 core | 数据质量与渲染正确性 | 0.25d | ✅ 已完成（v0.3.3） |
 | ✅ P3.7 | 精简合并：`extract_keywords` 废弃 → `graph_add({dryRun:true})` 预览；nlp.js 懒加载降级（compromise 缺失不炸 bundle 加载）；mesh/entity_id 描述互指 | 改 core + nlp | 工具语义更干净、加载更健壮 | 0.25d | ✅ 已完成（v0.3.3） |
 | ✅ P3.8a | **无代理韧性**：网络类失败自动退避重试（1s/3s）+ EBI 降级链（search/convert_ids/find_related → Europe PMC）+ 可行动报错（死代理 vs 不可达）；设计依据见 §7.1 | 改 core | 大陆无代理用户从 2/20 可用工具提升到 ~13/20，瞬时黑洞无感恢复 | 1d | ✅ 已完成（v0.3.5） |
-| P3.8b | `PUBTATOR_BASE_URL` / `EUTILS_BASE_URL` 可配置（自建反代口子；P2 request.cgi 同步受益） | 改 core | 高级用户自建通道 | 0.25d | v0.4.0（随 P2） |
+| ✅ P3.8b | `EUTILS_BASE_URL` / `PUBTATOR_BASE_URL` / `EPMC_BASE_URL` 可配置（自建反代口子，三族统一收敛为常量；P2 request.cgi 同步受益） | 改 core + index.js | 高级用户自建通道 | 0.25d | ✅ 已完成（v0.4.0 开发中） |
 | ✅ P3.9 | 技能文档自注册：插件激活时把 SKILL.md 写入 `~/.dsh/skills/dsh-pubmed/`（幂等 + 版本感知 + `SKILL_DOC:false` 开关）；发布自动化 workflow（push tag → Release 挂 tgz → NPM_TOKEN 配置后自动 publish） | 改 index.js + 新增 workflow | 纯净安装零手工；发布全自动化 | 0.5d | ✅ 已完成（v0.3.6） |
-| **P4** | **优化评审系列（代码精简/流程规范/文档/工程化，20 项外部意见逐条核定）** | 见 [`02_optimization-review.md`](02_optimization-review.md) | 批次一含 P0 级 mergeGraph 批量化 | 2–3d | 批次一 v0.3.7 |
-| **P2** | **`pubmed_pubtator_annotate_text` 原始文本标注** | 新工具 + transport 扩展 | 独有差异化能力（自有文本入图谱/稿件检查） | 1–1.5d | v0.4.0 |
+| ✅ **P4** | **优化评审系列（代码精简/流程规范/文档/工程化，20 项外部意见逐条核定）** | 见 [`02_optimization-review.md`](02_optimization-review.md) | 批次一含 P0 级 mergeGraph 批量化 | 2–3d | ✅ 批次一 v0.3.7 / 批次二 v0.3.8 / 清理 v0.3.9 |
+| ⏸️ **P2** | **`pubmed_pubtator_annotate_text` 原始文本标注** | 新工具 + transport 扩展 | 独有差异化能力（自有文本入图谱/稿件检查） | 1–1.5d | ⏸️ 搁置（上游 retrieve.cgi 故障，2026-09-02 实测坐实）；恢复后单独发布 |
 
 ---
 
@@ -153,9 +153,13 @@ register('pubmed_pubtator_search', '…', {
 - [x] pmcids 检索返回标注（`full:true` 全文路径透传）
 - [x] 参数冲突/皆空报错信息清晰（`pubtator-test.mjs` B4：7 项断言全过；真机验收待重装后抽查）
 
-### P1a · 关系证据回查 + 图谱边证据
+### P1a · 关系证据回查 + 图谱边证据（✅ 已实施 v0.3.3，设计有改）
 
-**新工具 `pubmed_pubtator_relation_evidence`**：
+> **设计变更**：原计划新增独立工具 `pubmed_pubtator_relation_evidence`；评审后改为给
+> `pubmed_pubtator_relations` 加 `evidence:true` 参数（工具数不膨胀），并同步在图谱 curated 边上
+> 挂 `evidencePmids`。以下保留原始设计作对照，实施以最终行为为准。
+
+**（原设计，已废弃）新工具 `pubmed_pubtator_relation_evidence`**：
 
 ```js
 register('pubmed_pubtator_relation_evidence', '…', {
@@ -170,16 +174,16 @@ register('pubmed_pubtator_relation_evidence', '…', {
 
 **图谱增强（`mergeGraph`）**：
 
-- [ ] relation 边可选携带 `detail: { evidencePmids: string[] }`，**默认开但每边限量 ≤5 条**
+- [x] relation 边可选携带 `detail: { evidencePmids: string[] }`，**默认开但每边限量 ≤5 条**
   （config `PUBTATOR_EDGE_EVIDENCE: false` 可关；证据来自对关系对的 search 查询，仅对
   `publications ≤ 50` 的低证据边回查，避免对 treat-neoplasms 这类超粗粒度边刷请求）
-- [ ] 回查请求走 `pubtatorScheduled` 且受探测上限约束（与 P3.4 的 probe 配额共享）
+- [x] 回查请求走 `pubtatorScheduled` 且受探测上限约束（与 P3.4 的 probe 配额共享）
 
 **验收标准**：
 
-- [ ] 工具返回某具体关系对的支持文章列表
-- [ ] `graph_get` 输出中 relation 边带 evidencePmids
-- [ ] `PUBTATOR_EDGE_EVIDENCE:false` 时边结构与 v0.2.1 完全一致（向后兼容）
+- [x] `pubtator_relations({evidence:true})` 返回关系对的支持文章 PMIDs（v0.3.3）
+- [x] `graph_get` 输出中 relation 边带 evidencePmids（v0.3.3）
+- [x] `PUBTATOR_EDGE_EVIDENCE:false` 时边结构与 v0.2.1 完全一致（向后兼容）
 
 ### P2 · `pubmed_pubtator_annotate_text` 原始文本标注
 
@@ -304,7 +308,10 @@ register('pubmed_pubtator_annotate_text', '…', {
 | **v0.3.4** | ✅ 显示层补齐（evidence 可见化）+ 压测脚本 | 真机验收：relations ev 行 + graph evidence-backed edges + annotate batches/cacheHits |
 | **v0.3.5** | ✅ P3.8a 无代理韧性（重试 + EBI 降级链 + 可行动报错） | net-resilience-test 13 断言全过；全套 12/12；README 无代理章节（zh/en）；§7.1 实测矩阵入库 |
 | **v0.3.6** | ✅ P3.9 技能自注册 + 发布自动化 workflow | skill-selfreg-test 6 断言全过；push tag 自动出 Release 挂 tgz；NPM_TOKEN 配置后自动 publish |
-| **v0.4.0** | P2（含 transport POST 扩展）+ P3.8b BASE_URL 可配置 + 移除已废弃的 extract_keywords | 两步异步全链路 + 超时/取消/续取测试通过；§4 P2.8 验收清单全勾 |
+| **v0.3.7** | ✅ P4 批次一（mergeGraph 批量化 / 删 ncbiPace×3 / 共享词表 / parseBool / 幽灵配置实现 / fulltext 互斥 / patch 注释 / files 加 docs） | 全套 14/14 测试 + 无代理真机 20 篇复测通过（106 概念入图、19 证据边、零超时）；npm 自动发布验证成功 |
+| **v0.3.8** | ✅ P4 批次二（EPM 重试 / 原子写 / 图写串行化 / @ 归一化 / SKILL 扩充 / npm scripts + CI 测试门） | 全套测试绿；npm publish 成功（npmmirror 同步延迟成真痛点 → E1 立项） |
+| **v0.3.9** | ✅ 移除已废弃的 `pubmed_extract_keywords`（20→19 工具） | 工具数与 README/SKILL/cordis 同步清理 |
+| **v0.4.0**（开发中） | **E1**（npmmirror 同步）+ **E2**（全文分页）+ **E3/E4**（`pubmed_search_papers` 统一检索）+ **E5**（S2 五工具）+ **P3.8b** BASE_URL（已本地实现）；P2 annotate_text **因上游故障搁置** | 全套离线 16/16 绿（含 e-items/s2 新测试）；发布后 npmmirror 1 分钟内可查；P2 待上游恢复后按 §4 P2.8 实施 |
 
 ## 6. 测试计划
 

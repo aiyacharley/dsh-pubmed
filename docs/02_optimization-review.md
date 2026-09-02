@@ -7,7 +7,7 @@
 | 评审对象 | 外部优化意见 20 项（四大类），逐条对照 `lib/pubmed-core.js`（2188 行 / 110.7KB）、`lib/index.js`、`lib/nlp.js`、`cordis.patch.yml`、`package.json`、README 核实 |
 | 结论速览 | **16 项属实采纳、3 项属实但降级缓议、1 项需实测核实**；原始评级有 4 处需要修正（详见各表"复核"列） |
 | 关联 | 主线计划见 [`01_pubtator3-plan.md`](01_pubtator3-plan.md)；本文件为 P4 系列（代码质量/文档/工程化） |
-| 执行状态 | **批次一已发布 v0.3.7**（全套 14/14 测试 + 无代理 20 篇真机复测通过：106 概念入图、19 条证据边、零超时；npm 自动发布验证成功） |
+| 执行状态 | **批次一 ✅ v0.3.7 / 批次二 ✅ v0.3.8 / 清理 ✅ v0.3.9（移除 extract_keywords）**；批次三缓议项随 v0.4.0+ 按需捞取（P2 搁置待上游恢复） |
 
 ---
 
@@ -69,8 +69,8 @@
 | 批次 | 版本 | 内容 | 工作量 |
 |---|---|---|---|
 | **✅ 批次一（已发布 v0.3.7）** | v0.3.7 | **P0 二.1**（mergeGraph 批量化 + 探测/证据预算缩放 + 超时分级）+ 一.1（删 ncbiPace×3）+ 一.2（死代码/共享动词表）+ 一.3（STOPWORDS 随 constants.js）+ 一.5（parseBool，修 YAML "false" 误开 bug）+ 三.1（patch 注释）+ 三.2（幽灵配置：实现 NCBI_ADMIN_EMAIL + EUROPEPMC_ENABLED 门控）+ 二.3（fulltext 互斥校验）+ 四.2（files 加 docs + lib/constants.js） | ~1d |
-| **✅ 批次二（已实现，本地）** | 版本号待用户确认 | 二.4（EPM 调用套 withNetRetry）+ 二.5（原子写）+ 二.6（图写串行化）+ 三.4（@ 归一化）+ 三.6（SKILL.md 扩充）+ 四.1（npm scripts + CI 测试门；lint 缓议）| ~1d |
-| **批次三** | v0.4.0 随 P2 / 缓议 | P3.8b + P2 本体 + 三.3（patch 语义实测）+ 一.4（normArgs）+ 一.6 小步（citations.js，受 new Function 架构约束缓议）+ 二.2 硬化 + 二.7 + 四.3（CHANGELOG）+ 四.4（内存上限）+ 三.5/三.8 | 随 P2 |
+| **✅ 批次二（已发布 v0.3.8）** | v0.3.8 | 二.4（EPM 调用套 withNetRetry）+ 二.5（原子写）+ 二.6（图写串行化）+ 三.4（@ 归一化）+ 三.6（SKILL.md 扩充）+ 四.1（npm scripts + CI 测试门；lint 缓议）| ~1d |
+| **批次三（缓议）** | v0.4.0+ 按需 | ~~P3.8b~~ ✅ 已实现（v0.4.0 开发中）+ ~~P2 本体~~ ⏸️ 搁置（上游故障）+ 三.3（patch 语义实测）+ 一.4（normArgs）+ 一.6 小步（citations.js，受 new Function 架构约束缓议）+ 二.2 硬化 + 二.7 + 四.3（CHANGELOG）+ 四.4（内存上限）+ 三.5/三.8 | 随需 |
 
 ## 4. 有争议/需实测事项
 
