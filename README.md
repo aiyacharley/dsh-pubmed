@@ -319,6 +319,20 @@ dsh plugin --profile web add dsh-pubmed@latest
 - patch：profile 的 `cordis.patch.yml` 追加 `- insert: [{ id: pubmed, name: 'dsh-pubmed' }]` → 重启；
 - 会话级：手动 `cordis_define` / `cordis_run`（模板见 `lib/dynamic-wrapper.js`）。
 
+### 更新
+
+`dsh plugin` 是 pnpm 的薄转发器——`update` 直接透传 pnpm 的 update，并在成功后按新版本的
+`dsh.bundle` 声明自动对齐 bundle 层（若新版新增或移除了 bundle 声明也会自动生效，无需手动改 patch）。
+
+```bash
+# 更新到最新版
+dsh plugin --profile web update dsh-pubmed@latest
+# 更新到指定版本（如 0.4.0）
+dsh plugin --profile web update dsh-pubmed@0.4.0
+```
+
+> 更新后**重启 DSH** 生效。`add dsh-pubmed@latest` 同样可作升级用（已安装时 pnpm add @latest 也会升到最新）。
+
 ### 卸载
 
 - **会话级**：`cordis_undefine` 该插件即可（或重启 DSH，会话级插件本就不持久）；

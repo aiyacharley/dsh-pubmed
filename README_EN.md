@@ -341,6 +341,22 @@ dsh plugin --profile web add dsh-pubmed@latest
   → restart;
 - session-level: run `cordis_define` / `cordis_run` manually (template in `lib/dynamic-wrapper.js`).
 
+### Update
+
+`dsh plugin` is a thin pnpm forwarder — `update` passes straight through to pnpm's update, and on success
+the bundle layer is re-reconciled against the new version's `dsh.bundle` declaration (a version that
+gains or drops the declaration is activated/removed automatically — no manual patch edits needed).
+
+```bash
+# Update to the latest version
+dsh plugin --profile web update dsh-pubmed@latest
+# Update to a specific version (e.g. 0.4.0)
+dsh plugin --profile web update dsh-pubmed@0.4.0
+```
+
+> **Restart DSH after updating.** `add dsh-pubmed@latest` also works as an upgrade path (when already
+> installed, pnpm add @latest bumps to the newest).
+
 ### Uninstall
 
 - **Session-level**: `cordis_undefine` the plugin (or restart DSH — session-level plugins are not persistent);
