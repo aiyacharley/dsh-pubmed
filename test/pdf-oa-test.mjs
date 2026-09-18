@@ -173,6 +173,100 @@ function defaultMock(u) {
   const { tools } = makeTools(defaultMock, { downloadToFile: async () => { throw new Error('HTTP 403') } })
   const r = await tools.pubmed_fetch_pdf_oa.execute({ doi: DOI, download: true }, S('p'))
   add('download: all links blocked → error lists every attempt', r.download.ok === false && /all \d+ PDF link\(s\) failed/.test(r.download.error) && r.download.attempts.length >= 2)
+  add('download: all-blocked error is actionable (points at links / fetch_fulltext)', /consent wall or bot check/.test(r.download.error) && /pubmed_fetch_fulltext/.test(r.download.error))
+}
+
+// ---- 6d) BATCH form: a search hit list → OA link list in ONE call ----
+{
+  // Three pmids; the middle one is closed. All three must be reported.
+  const closedDoi = '10.2337/db07-1098'
+  const { tools } = makeTools((u) => {
+    // Unpaywall / OpenAlex / EPMC all key off the DOI in the query string.
+    const isClosed = u.includes(encodeURIComponent(closedDoi)) || u.includes(closedDoi)
+    if (u.includes('api.unpaywall.org')) {
+      return isClosed
+        ? { status: 200, body: JSON.stringify({ is_oa: false, oa_status: 'closed', oa_locations: [] }) }
+        : { status: 200, body: UNPAYWALL }
+    }
+    if (u.includes('api.openalex.org')) {
+      return isClosed
+        ? { status: 200, body: JSON.stringify({ open_access: { is_oa: false }, best_oa_location: null, locations: [] }) }
+        : { status: 200, body: OPENALEX }
+    }
+    if (u.includes('europepmc') || u.includes('ebi.ac.uk')) {
+      // A closed DOI's EPMC record reports isOpenAccess=N and no free PDF.
+      return isClosed
+        ? { status: 200, body: JSON.stringify({ resultList: { result: [{ isOpenAccess: 'N', fullTextUrlList: { fullTextUrl: [{ documentStyle: 'doi', availability: 'Subscription required', url: 'https://doi.org/' + closedDoi }] } }] } }) }
+        : { status: 200, body: EPMC_CORE }
+    }
+    if (u.includes('esummary.fcgi')) {
+      // pmid 111 → open DOI; 222 → closed DOI; 333 → no DOI at all
+      const body = u.includes('333')
+        ? JSON.stringify({ result: { '333': { articleids: [] } } })
+        : u.includes('222')
+          ? JSON.stringify({ result: { '222': { articleids: [{ idtype: 'doi', value: closedDoi }] } } })
+          : JSON.stringify({ result: { '111': { articleids: [{ idtype: 'doi', value: DOI }] } } })
+      return { status: 200, body }
+    }
+    if (u.includes('elink.fcgi')) return { status: 200, body: ELINK_PMID_TO_PMC }
+    return { status: 200, body: '{}' }
+  })
+  const r = await tools.pubmed_fetch_pdf_oa.execute({ pmids: ['111', '222', '333'] }, S('p'))
+  add('batch: marked batch + reports all 3 ids', r.batch === true && r.requested === 3 && r.results.length === 3)
+  add('batch: counts OA + downloadable', r.openAccessCount >= 1 && r.downloadableCount >= 1)
+  add('batch: every result carries id + idType', r.results.every((x) => x.id && x.idType === 'pmid'))
+  add('batch: closed id reported as not-OA (not dropped)', r.results.some((x) => x.input.pmid === '222' && x.isOpenAccess === false))
+  add('batch: open id has a best PDF', r.results.some((x) => x.bestPdfUrl === PDF))
+}
+// ---- 6e) batch download: one savedPath per downloadable id ----
+{
+  const closedDoi = '10.2337/db07-1098'
+  // NOTE: the plugin URL-encodes DOIs into the request URL (correct), so the
+  // mock must match the ENCODED form — matching the raw DOI silently misses.
+  const encClosed = encodeURIComponent(closedDoi)
+  const { tools } = makeTools((u) => {
+    const isClosed = u.includes(encClosed) || u.includes(closedDoi)
+    if (u.includes('api.unpaywall.org')) return isClosed ? { status: 200, body: JSON.stringify({ is_oa: false, oa_locations: [] }) } : { status: 200, body: UNPAYWALL }
+    if (u.includes('api.openalex.org')) return isClosed ? { status: 200, body: JSON.stringify({ open_access: { is_oa: false }, best_oa_location: null, locations: [] }) } : { status: 200, body: OPENALEX }
+    if (u.includes('europepmc') || u.includes('ebi.ac.uk')) return isClosed ? { status: 200, body: JSON.stringify({ resultList: { result: [] } }) } : { status: 200, body: EPMC_CORE }
+    return { status: 200, body: '{}' }
+  }, { downloadToFile: async (url) => ({ savedPath: 'C:/tmp/' + url.split('/').pop(), bytes: 10, contentType: 'application/pdf' }) })
+  const r = await tools.pubmed_fetch_pdf_oa.execute({ dois: [DOI, closedDoi], download: true }, S('p'))
+  add('batch download: results carry per-id download outcomes', r.results.every((x) => x.download != null))
+  add('batch download: open one saved, closed one reports an error', r.results.some((x) => x.download.ok === true) && r.results.some((x) => x.download.ok === false))
+}
+// ---- 6f) batch input validation ----
+{
+  const { tools } = makeTools(defaultMock)
+  let m1 = ''
+  try { await tools.pubmed_fetch_pdf_oa.execute({ doi: DOI, pmids: ['111'] }, S('p')) } catch (e) { m1 = String(e.message) }
+  add('mixed single + batch form rejected', /either the single-id form.*or the batch form/.test(m1))
+  let m2 = ''
+  try { await tools.pubmed_fetch_pdf_oa.execute({ pmids: ['111'], dois: [DOI] }, S('p')) } catch (e) { m2 = String(e.message) }
+  add('two batch lists rejected', /mutually exclusive/.test(m2))
+  const many = await tools.pubmed_fetch_pdf_oa.execute({ pmids: Array.from({ length: 14 }, (_, i) => String(100 + i)) }, S('p'))
+  add('batch capped at 10 with truncation reported', many.requested === 10 && many.truncated === 14)
+}
+
+// ---- 6g) unified search surfaces OA flags (change B) ----
+{
+  const esearch = JSON.stringify({ esearchresult: { idlist: [], count: '0' } })
+  const epm = JSON.stringify({ hitCount: 1, resultList: { result: [{ id: 'E1', source: 'MED', title: 'OA via EPMC', pubYear: '2024', doi: '10.1/oa', isOpenAccess: 'Y', inPMC: 'Y' }] } })
+  const oa = JSON.stringify({ meta: { count: 1 }, results: [
+    { id: 'https://openalex.org/W1', title: 'OA via OpenAlex', publication_year: 2023, doi: 'https://doi.org/10.1/oa2', ids: {}, open_access: { is_oa: true, oa_status: 'gold', oa_url: 'https://example.org/a.pdf' }, best_oa_location: { pdf_url: 'https://example.org/a.pdf', landing_page_url: 'https://example.org/a' } },
+    { id: 'https://openalex.org/W2', title: 'Closed paper', publication_year: 2023, doi: 'https://doi.org/10.1/closed', ids: {}, open_access: { is_oa: false }, best_oa_location: null },
+  ] })
+  const { tools } = makeTools((u) => {
+    if (u.includes('esearch.fcgi')) return { status: 200, body: esearch }
+    if (u.includes('api.openalex.org')) return { status: 200, body: oa }
+    if (u.includes('europepmc') || u.includes('ebi.ac.uk')) return { status: 200, body: epm }
+    return { status: 200, body: '{}' }
+  })
+  const r = await tools.pubmed_search_papers.execute({ query: 'x' }, S('p'))
+  add('search: OpenAlex hit carries isOpenAccess + oaUrl', r.papers.some((p) => p.isOpenAccess === true && p.oaUrl === 'https://example.org/a.pdf' && p.oaStatus === 'gold'))
+  add('search: EPMC hit carries isOpenAccess + inPmc', r.papers.some((p) => p.isOpenAccess === true && p.inPmc === true))
+  add('search: closed paper has no OA flag', r.papers.some((p) => p.title === 'Closed paper' && p.isOpenAccess === undefined))
+  add('search: OA fields survive the merge (merged record keeps OA)', r.papers.some((p) => p.isOpenAccess === true && Array.isArray(p.foundIn)))
 }
 
 // ---- 7) source resilience: one source down, others still serve ----

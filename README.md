@@ -135,7 +135,7 @@ fetch_articles（自动入图）→ 多轮增量累积 → graph_get({format:'me
 |---|---|---|
 | `pubmed_fetch_articles` | 按 PMID 取结构化文章（作者 / 摘要 / MeSH / 基金 / DOI / PMCID）；`AUTO_GRAPH` 默认开时**自动入图** | 要精读元数据、或给图谱喂数据 |
 | `pubmed_fetch_fulltext` | PMC 全文（JATS → 分节正文；可 `offset`/`maxCharacters` **分页续读**长文） | 40 页论文分页读，不冲爆上下文 |
-| `pubmed_fetch_pdf_oa` | **开放获取 PDF 发现**：给 DOI/PMID/PMCID → 聚合 **Unpaywall + Europe PMC + OpenAlex** 三源的 OA 链接列表（PDF 直链优先，带 hostType / version / license / OA 状态）；`download:true` 可**下载 PDF 到本地**（默认存到**工作区**下的 `dsh-pubmed-pdfs/`，可用 `outDir` 改；仅落盘不解析，出版社拦截页会自动跳到下一个候选链接） | 要 OA 全文 PDF、或想把 PDF 存到本地自己读 |
+| `pubmed_fetch_pdf_oa` | **开放获取 PDF 发现**：给 **单个** DOI/PMID/PMCID 或**批量** `pmids[]`/`dois[]`/`pmcids[]`（≤10）→ 聚合 **Unpaywall + Europe PMC + OpenAlex** 三源，返回去重排序的 OA 链接列表（PDF 直链优先，带 hostType / version / license / OA 状态）；`download:true` 可**下载 PDF 到本地**（默认存到**工作区**下的 `dsh-pubmed-pdfs/`，文件名用 PMID/DOI；仅落盘不解析，出版社拦截页会自动跳到下一个候选链接） | 要 OA 全文 PDF、或想把 PDF 存到本地自己读；**批量**形式把检索结果一次转成下载列表 |
 | `pubmed_europepmc_fetch` | 按 source+id 取 EPM 完整记录（含未截断摘要） | 预印本 / 专利等非 PubMed 记录 |
 
 ### 📝 引用与 ID
@@ -221,21 +221,30 @@ pubmed_graph_get({ scope: 'user' })            # 下次继续时取回
 ### 剧本 F：找开放获取全文 PDF（下载到本地自己读）
 
 ```
-# ① 先拿链接列表（不给 download 就只查链接，不动磁盘）
+# ① 检索：结果里直接标了哪些是开放获取（🟢OA，零额外请求）
+pubmed_search_papers({ query: 'gut microbiome metabolomics' })
+#   → 15 篇命中，其中 9 篇标 🟢OA 并附 oaUrl（OpenAlex/EPMC 顺带返回，无需额外查询）
+#   末尾会提示：把 OA 那几篇的 DOI/PMID 交给 pubmed_fetch_pdf_oa
+
+# ② 批量拿下载链接（一次调用，最多 10 个 id）——这是"检索→下载列表"的主路径
+pubmed_fetch_pdf_oa({ pmids: ['34262212', '31341288', '40495162'] })
+#   → OA PDF lookup — 3 id(s): 3 open access, 3 with a direct PDF link
+#     ✅ PMID 34262212 → https://europepmc.org/articles/PMC8939302?pdf=render
+#     ✅ PMID 31341288 → https://iris.unitn.it/bitstream/...
+#     每个链接带 hostType / version / license
+
+# ③ 单个 id 也行（拿全部候选链接）
 pubmed_fetch_pdf_oa({ doi: '10.1038/nature12373' })
-#   → ✅ Open access (bronze) — 9 个链接：出版社 PDF / arXiv PDF / EPMC render / 机构库 …
-#     每个链接带 hostType（publisher|repository）、version（submitted|accepted|published）、license
+#   → ✅ Open access (bronze) — 9 个链接（出版社 PDF / arXiv PDF / EPMC render / 机构库 …）
 
-# ② 确认要哪份之后，再下载（默认存到 <工作区>/dsh-pubmed-pdfs/）
-pubmed_fetch_pdf_oa({ doi: '10.1038/nature12373', download: true })
-#   → Downloaded → .../dsh-pubmed-pdfs/1304.1068.pdf (2419633 bytes)
-#     出版社链接若被反爬/同意墙挡住，会自动跳到下一个候选（如 arXiv）并说明跳过原因
-
-# ③ 只有 PMID 也行（自动解析 DOI/PMCID）
-pubmed_fetch_pdf_oa({ pmid: '23903754', download: true })
+# ④ 确认后批量下载（默认存 <工作区>/dsh-pubmed-pdfs/，文件名用 PMID/DOI 便于辨认）
+pubmed_fetch_pdf_oa({ pmids: ['34262212', '31341288'], download: true })
+#   → ✓ PMID31341288.pdf (1262KB)
+#     出版社链接若被反爬/同意墙挡住，自动跳到下一个候选；全被挡时给出可行动提示
 ```
 
 > 该工具**只负责找到并下载** PDF（不解析内容）；PMC 结构化全文（分节 JATS）走 `pubmed_fetch_fulltext`。
+> 检索结果里的 `isOpenAccess` / `oaUrl` 字段（**B**）让你知道该对哪些命中调 `fetch_pdf_oa`（**A** 支持批量）。
 
 ---
 
@@ -385,7 +394,7 @@ dsh plugin --profile web update dsh-pubmed@0.4.0
 
 ## 版本历史
 
-- **v0.4.2**（开发中）— **OA PDF 发现与下载**：新增第 26 个工具 `pubmed_fetch_pdf_oa`——给 DOI/PMID/PMCID 聚合 **Unpaywall + Europe PMC + OpenAlex** 三源，返回去重排序的 OA 链接列表（PDF 直链优先，带 hostType / version / license / OA 状态）；`download:true` 把 PDF 存到**工作区 `dsh-pubmed-pdfs/`**（仅落盘不解析）；**PDF 签名校验**（出版社 HTML 拦截页不会被当成 PDF，自动跳到下一个候选链接）；新增 `UNPAYWALL_EMAIL` 配置。
+- **v0.4.2**（开发中）— **OA PDF 发现与下载**：新增第 26 个工具 `pubmed_fetch_pdf_oa`——给**单个或批量**（≤10）DOI/PMID/PMCID 聚合 **Unpaywall + Europe PMC + OpenAlex** 三源，返回去重排序的 OA 链接列表（PDF 直链优先，带 hostType / version / license / OA 状态）；`download:true` 把 PDF 存到**工作区 `dsh-pubmed-pdfs/`**（文件名用 PMID/DOI，仅落盘不解析）；**PDF 签名校验**（出版社 HTML 拦截页不会被当成 PDF，自动跳到下一个候选链接）；**统一搜索结果新增 `isOpenAccess` / `oaUrl` / `oaStatus` 标记**（零额外请求），agent 可直接把 OA 命中批量交给 `fetch_pdf_oa`；新增 `UNPAYWALL_EMAIL` 配置。
 - **v0.4.1** — **统一搜索增强**：`pubmed_search_papers` 默认三源（PubMed + Europe PMC + **OpenAlex**——快速、免费、全领域、带被引数）；`sources` 加 `'s2'`（opt-in Semantic Scholar）或 `'all'`（四源）；新增 `sort`（relevance/citations/year）与 `year` 跨源过滤（**下推各源查询**，修复了"过滤后 0 条"的问题）；agent 路由描述补全（`search_articles`/`europepmc_search` 现在指向统一搜索）。
 - **v0.4.0** — **生态补全 + 反代可配**：`pubmed_search_papers` 跨源统一检索（去重合并 + perSource 报告）；Semantic Scholar 五工具（被引数 / 推荐 / 标题匹配 / 全领域）；`fetch_fulltext` 分页切片；`EUTILS_BASE_URL` / `PUBTATOR_BASE_URL` / `EPMC_BASE_URL` 可配；发布后自动同步 npmmirror（国内 1 分钟内可装）。
 - **v0.3.9** — 移除已废弃的 `pubmed_extract_keywords`（19 工具）；README/SKILL/cordis 清理。
