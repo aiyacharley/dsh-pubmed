@@ -310,6 +310,8 @@ bundle 运行时**零配置即可用**。可选配置建议写进 profile 的 pa
 | `S2_API_KEY` | 无 | S2 免费 key：1 req/s（无 key 走共享 100 req/5min）|
 | `UNPAYWALL_EMAIL` | 内置 noreply 地址 | `pubmed_fetch_pdf_oa` 查询 Unpaywall 的联系邮箱（**必须真实邮箱**，占位地址会被 422 拒）；内置地址已实测可用 |
 | `DSH_PUBMED_PDF_DIR` | `~/.dsh/dsh-pubmed-pdfs/` | PDF 下载目录（环境变量）；单次调用可用 `outDir` 覆盖（agent 知道会话工作区，可显式传 `<工作区>/dsh-pubmed-pdfs/`）|
+| `HEURISTIC_RELATIONS` | `true` | 启发式关系层开关（"X 调控 Y" 词干抽取）；设 `false` 得到**纯 curated 图**（只剩 PubTator 关系）|
+| `RELATION_ENDPOINT_REQUIRE_KEYWORD` | `true` | 关系边两端必须是本文关键词（**语义门**，拦截 "they share similar" 类语法碎片入图）|
 | `EUTILS_BASE_URL` / `PUBTATOR_BASE_URL` / `EPMC_BASE_URL` | 官方端点 | 自建反代端点，扛区域网络波动 |
 | `SKILL_DOC` | `true` | 激活时自动注册 agent 路由技能文档 |
 
@@ -411,7 +413,7 @@ dsh plugin --profile web update dsh-pubmed@0.4.0
 
 ## 版本历史
 
-- **v0.4.2**（开发中）— **OA PDF 发现与下载**：新增第 26 个工具 `pubmed_fetch_pdf_oa`——给**单个或批量**（≤10）DOI/PMID/PMCID 聚合 **Unpaywall + Europe PMC + OpenAlex** 三源，返回去重排序的 OA 链接列表（PDF 直链优先，带 hostType / version / license / OA 状态）；`download:true` 把 PDF 存到 `~/.dsh/dsh-pubmed-pdfs/`（文件名用 PMID/DOI，仅落盘不解析；agent 知道会话工作区，可用 `outDir` 把 PDF 放进项目目录）；**PDF 签名校验**（出版社 HTML 拦截页不会被当成 PDF，自动跳到下一个候选链接）；**统一搜索结果新增 `isOpenAccess` / `oaUrl` / `oaStatus` 标记**（零额外请求），agent 可直接把 OA 命中批量交给 `fetch_pdf_oa`；新增 `UNPAYWALL_EMAIL` 配置。
+- **v0.4.2**（开发中）— **OA PDF 发现与下载 + 图谱去噪**：新增第 26 个工具 `pubmed_fetch_pdf_oa`——给**单个或批量**（≤10）DOI/PMID/PMCID 聚合 **Unpaywall + Europe PMC + OpenAlex** 三源，返回去重排序的 OA 链接列表（PDF 直链优先，带 hostType / version / license / OA 状态）；`download:true` 把 PDF 存到 `~/.dsh/dsh-pubmed-pdfs/`（文件名用 PMID/DOI，仅落盘不解析；agent 知道会话工作区，可用 `outDir` 把 PDF 放进项目目录）；**PDF 签名校验**（出版社 HTML 拦截页不会被当成 PDF，自动跳到下一个候选链接）；**统一搜索结果新增 `isOpenAccess` / `oaUrl` / `oaStatus` 标记**（零额外请求）；**图谱去噪**：关系跨度严格清洗 + 端点 ∈ 本文关键词语义门（`RELATION_ENDPOINT_REQUIRE_KEYWORD`）+ mermaid 不再补入 count=0 碎片端点 + `HEURISTIC_RELATIONS:false` 纯 curated 开关；新增 `UNPAYWALL_EMAIL` 配置。
 - **v0.4.1** — **统一搜索增强**：`pubmed_search_papers` 默认三源（PubMed + Europe PMC + **OpenAlex**——快速、免费、全领域、带被引数）；`sources` 加 `'s2'`（opt-in Semantic Scholar）或 `'all'`（四源）；新增 `sort`（relevance/citations/year）与 `year` 跨源过滤（**下推各源查询**，修复了"过滤后 0 条"的问题）；agent 路由描述补全（`search_articles`/`europepmc_search` 现在指向统一搜索）。
 - **v0.4.0** — **生态补全 + 反代可配**：`pubmed_search_papers` 跨源统一检索（去重合并 + perSource 报告）；Semantic Scholar 五工具（被引数 / 推荐 / 标题匹配 / 全领域）；`fetch_fulltext` 分页切片；`EUTILS_BASE_URL` / `PUBTATOR_BASE_URL` / `EPMC_BASE_URL` 可配；发布后自动同步 npmmirror（国内 1 分钟内可装）。
 - **v0.3.9** — 移除已废弃的 `pubmed_extract_keywords`（19 工具）；README/SKILL/cordis 清理。

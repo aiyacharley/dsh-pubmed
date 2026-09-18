@@ -100,6 +100,8 @@ entity_id（文本→@ID）→ pubtator_search（@ID/关系式→文章）→ fe
 | `S2_ENABLED` | true | Semantic Scholar 五工具开关 |
 | `S2_API_KEY` | 无 | S2 免费 key：1 req/s（否则共享 100 req/5min）|
 | `UNPAYWALL_EMAIL` | 内置 noreply | `fetch_pdf_oa` 的 Unpaywall 联系邮箱（须真实邮箱）|
+| `HEURISTIC_RELATIONS` | true | 启发式关系层开关；false = 纯 curated 图 |
+| `RELATION_ENDPOINT_REQUIRE_KEYWORD` | true | 关系边端点必须 ∈ 本文关键词（语义门，拦语法碎片）|
 
 ## 易错点（务必记住）
 

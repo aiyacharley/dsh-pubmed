@@ -103,6 +103,44 @@ function makeTools(httpGet, extraDeps) {
   add('F6: summaries have no self entry', !r.summaries.some((s) => s.pmid === '23193287'))
 }
 
+// ---- A2/A3/C (F2 round 3): semantic gate, mermaid bring-in budget, kill switch ----
+{
+  // The F2 debris article: fragments like "microbial communities are" must not
+  // become keyword nodes; the legit relation ("microbiota modulates
+  // inflammation") survives because both endpoints are article keywords.
+  const article = {
+    pmid: '1',
+    title: 'Microbiota-derived indoles alleviate intestinal inflammation',
+    abstractText: 'They share similar features with the host. Microbial communities are shaped by diet. Microbiota modulates inflammation. Lactobacillus produces indole-3-lactic acid. The intestinal tract can chronically activate the immune system.',
+  }
+  const { tools } = makeTools(() => ({ status: 200, body: '{}' }))
+  await tools.pubmed_graph_reset.execute({ scope: 'session' }, S('f'))
+  await tools.pubmed_graph_add.execute({ articles: [article] }, S('f'))
+  const g = await tools.pubmed_graph_get.execute({ scope: 'session', format: 'json' }, S('f'))
+  const labels = g.session.nodes.filter((n) => n.type === 'keyword').map((n) => n.label)
+  const count0 = g.session.nodes.filter((n) => n.type === 'keyword' && !n.count)
+  add('A2: no count-0 debris keyword endpoints (all endpoints are article keywords)', count0.length === 0)
+  add('A2: the valid relation survives (microbiota modulates inflammation)', g.session.edges.some((e) => e.kind === 'relation' && e.source.includes('microbiota') && e.target.includes('inflammation')))
+  // A3: mermaid bring-in skips count-0 keyword endpoints (test with the gate OFF
+  // so count-0 endpoints exist, then check mermaid excludes them).
+  const mk = (extraDeps) => { const t = {}; registerPubmedTools({ get: () => undefined }, { defineTool: (o) => o, register: (d) => { t[d.name] = d }, httpGet: async () => ({ status: 200, body: '{}' }), sleep: () => Promise.resolve(), ...extraDeps }); return t }
+  const tOff = mk({ relationEndpointRequireKeyword: false })
+  await tOff.pubmed_graph_reset.execute({ scope: 'session' }, S('f'))
+  await tOff.pubmed_graph_add.execute({ articles: [article] }, S('f'))
+  const gOff = await tOff.pubmed_graph_get.execute({ scope: 'session', format: 'mermaid' }, S('f'))
+  const mmd = gOff.mermaid.session || ''
+  const offNodes = gOff.session ? (gOff.session.nodes || []) : []
+  void offNodes
+  add('A3: mermaid does not bring in count-0 keyword endpoints', !/("they share similar"|"share similar"|will share)/.test(mmd))
+  // C: HEURISTIC_RELATIONS:false → zero relation edges (pure curated graph)
+  const tC = mk({ heuristicRelations: false })
+  await tC.pubmed_graph_reset.execute({ scope: 'session' }, S('f'))
+  await tC.pubmed_graph_add.execute({ articles: [article] }, S('f'))
+  const gC = await tC.pubmed_graph_get.execute({ scope: 'session', format: 'json' }, S('f'))
+  add('C: HEURISTIC_RELATIONS:false → zero relation edges', gC.session.edges.every((e) => e.kind !== 'relation'))
+  add('C: keyword nodes still built (MeSH/token layer unaffected)', gC.session.nodes.some((n) => n.type === 'keyword'))
+}
+
 for (const [name, ok] of checks) console.log((ok ? 'PASS' : 'FAIL') + '  ' + name)
 const fails = checks.filter(([, ok]) => !ok).length
 console.log(fails ? `FEEDBACK TEST FAIL (${fails})` : 'FEEDBACK TEST OK')
