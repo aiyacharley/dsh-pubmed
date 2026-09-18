@@ -9,7 +9,7 @@
 
 | | |
 |---|---|
-| 当前版本 | v0.4.1（npm latest）· 25 工具；v0.4.2 开发中（26 工具，+OA PDF 发现）|
+| 当前版本 | v0.4.2（npm latest）· 26 工具 |
 | 下一版本 | v0.4.x：P2 annotate_text（待上游恢复）+ 缓议项按需捞取 |
 | 维护原则 | 免费直连（不引入付费代理）；纯 JS 免构建；离线测试全覆盖；发布全自动 |
 
@@ -60,7 +60,7 @@
 | E5 | Semantic Scholar 直连五工具（`search_s2` / `get_s2_detail` / `get_s2_citations` / `get_s2_recommendations` / `match_paper_by_title`）；`S2_ENABLED` 门控 + 专用限速队列（无 key 3s/次 < 共享 100req/5min，有 key 1.1s/次） | v0.4.0 | ✅ v0.4.0 |
 | 测试 | `test/e-items-test.mjs`（E1–E4，13 断言）+ `test/s2-test.mjs`（E5，14 断言） | v0.4.0 | ✅ |
 | 文档 | SKILL/README/README_EN/cordis/index.js 同步到 25 工具 + 新配置 + 新路由 | v0.4.0 | ✅ v0.4.0 |
-| E6 | **`pubmed_fetch_pdf_oa`**（OA PDF 发现 + 可选下载）：聚合 Unpaywall + Europe PMC fullTextUrlList + OpenAlex；PDF 签名校验 + 链接兜底；默认存 `<workspace>/dsh-pubmed-pdfs/` | v0.4.2 | ✅ 本地已实现 |
+| E6 | **`pubmed_fetch_pdf_oa`**（OA PDF 发现 + 可选下载）：聚合 Unpaywall + Europe PMC fullTextUrlList + OpenAlex；PDF 签名校验 + 链接兜底；默认存 `~/.dsh/dsh-pubmed-pdfs/`（agent 传 `outDir` 进工作区） | v0.4.2 | ✅ v0.4.2 |
 
 ### 1.5 统一搜索增强（v0.4.1 已发布）
 

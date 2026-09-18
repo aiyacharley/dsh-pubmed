@@ -296,7 +296,7 @@ dsh plugin --profile web update dsh-pubmed@latest     # 或 @0.4.2 指定版本
 
 ## 版本历史
 
-- **v0.4.2**（开发中）— **OA PDF 发现与下载 + 图谱去噪**：新增第 26 个工具 `pubmed_fetch_pdf_oa`——给**单个或批量**（≤10）DOI/PMID/PMCID 聚合 **Unpaywall + Europe PMC + OpenAlex** 三源，返回去重排序的 OA 链接列表；`download:true` 把 PDF 存到本地（文件名用 PMID/DOI，仅落盘不解析）；**PDF 签名校验**（出版社 HTML 拦截页自动跳过）；**统一搜索结果新增 OA 标记**（零额外请求）；**图谱去噪**（语义门 + mermaid 裁剪 + 纯 curated 开关）；新增 `UNPAYWALL_EMAIL` 配置。
+- **v0.4.2** — **OA PDF 发现与下载 + 图谱去噪**：新增第 26 个工具 `pubmed_fetch_pdf_oa`——给**单个或批量**（≤10）DOI/PMID/PMCID 聚合 **Unpaywall + Europe PMC + OpenAlex** 三源，返回去重排序的 OA 链接列表；`download:true` 把 PDF 存到本地（文件名用 PMID/DOI，仅落盘不解析）；**PDF 签名校验**（出版社 HTML 拦截页自动跳过）；**统一搜索结果新增 OA 标记**（零额外请求）；**图谱去噪**（语义门 + mermaid 裁剪 + 纯 curated 开关）；新增 `UNPAYWALL_EMAIL` 配置。
 - **v0.4.1** — **统一搜索增强**：`pubmed_search_papers` 默认三源（PubMed + Europe PMC + **OpenAlex**）；`sources` 加 `'s2'`/`'all'`；`sort` 与 `year` 跨源过滤（下推各源查询）；agent 路由描述补全。
 - **v0.4.0** — **生态补全 + 反代可配**：跨源统一检索；Semantic Scholar 五工具；`fetch_fulltext` 分页切片；BASE_URL 可配；发布后自动同步 npmmirror。
 - **v0.3.9** — 移除已废弃的 `pubmed_extract_keywords`。

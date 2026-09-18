@@ -328,7 +328,7 @@ dsh plugin --profile web update dsh-pubmed@latest     # or @0.4.2 for a specific
 
 ## Version history
 
-- **v0.4.2** (in development) — **OA PDF discovery & download + graph denoising**: new 26th tool
+- **v0.4.2** — **OA PDF discovery & download + graph denoising**: new 26th tool
   `pubmed_fetch_pdf_oa` — for a **single or batch** (≤10) DOI/PMID/PMCID it aggregates **Unpaywall +
   Europe PMC + OpenAlex** into one de-duplicated, ranked OA link list; `download:true` saves the PDFs
   locally (filenames keyed by PMID/DOI; bytes only, never parsed); **PDF signature validation** (a
