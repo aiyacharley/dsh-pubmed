@@ -8,7 +8,8 @@
 > **给科研文献检索装上"实体级 + 证据链 + 全文可达"引擎**：PubMed / Europe PMC / OpenAlex / PubTator3 / Semantic Scholar
 > 五源一体的 DeepSeek Harness（DSH）插件，**26 个原生模型工具**，无 MCP 客户端、无付费代理、纯 JS 免构建。
 >
-> 一句话：**把"关键词匹配"升级为"实体归一 + 关系语义 + 证据可审计 + OA 全文可得"，把 80% 的机械筛库时间变成 20% 的高质量阅读时间。**
+> 你只管用自然语言提需求——"帮我找 XX 的文献，能下载的下载下来"——agent 会选对工具、串起流程、把结果摆到你面前。
+> 检索结果自带**摘要、被引数与开放获取标记**，全文可达。
 
 ---
 
@@ -16,12 +17,12 @@
 
 - [🚀 安装（2 分钟上手）](#-安装2-分钟上手)
 - [为什么需要它](#为什么需要它)
-- [三大亮点](#三大亮点)
-- [26 个工具 · 按任务分组](#26-个工具--按任务分组)
-- [真实场景剧本](#真实场景剧本)
+- [六大功能模块](#六大功能模块)
+- [典型场景串联](#典型场景串联)
 - [配置](#配置)
 - [无代理网络（大陆直连）](#无代理网络大陆直连)
-- [Agent 路由技能（自动注册）](#agent-路由技能自动注册)
+- [给 Agent 的说明](#给-agent-的说明)
+- [附录：26 工具速查](#附录26-工具速查)
 - [安装与卸载（完整）](#安装与卸载完整)
 - [版本历史](#版本历史)
 - [要求](#要求)
@@ -38,14 +39,13 @@ dsh plugin --profile web add dsh-pubmed@latest
 # 或本机源码：dsh plugin --profile web add /path/to/dsh-pubmed
 ```
 
-装完**重启 DSH**，`pubmed_*` 出现在所有会话。自检一条：
+装完**重启 DSH**，`pubmed_*` 工具出现在所有会话。自检一条：
 
 ```
 pubmed_spell_check({ query: 'microbiom' })    # → corrected: "microbiome"
 ```
 
-> 零配置即可用；更多安装方式（粘贴给 Agent 自动装 / 手动 patch）见文末
-> [安装与卸载（完整）](#安装与卸载完整)，卸载见同节。
+> 零配置即可用；更多安装方式见文末[安装与卸载（完整）](#安装与卸载完整)。
 
 ---
 
@@ -58,230 +58,111 @@ pubmed_spell_check({ query: 'microbiom' })    # → corrected: "microbiome"
 | **同义词漏检** | 搜 `DOX` 搜不到"阿霉素"、搜 `HER2` 漏掉 `ERBB2` | 漏掉一半相关文献 |
 | **噪音混入** | 关键词共现把"只是顺便提到"的文章也搜进来 | 读十篇只有一篇相关 |
 | **证据链断裂** | 看到"某药可治某病"却不知道哪些文献支撑 | 不敢放心引用 |
-| **被引数据缺失** | PubMed 本身不提供被引数 | 判断影响力要靠外部网站 |
-| **多平台割裂** | PubMed / EBI / Google Scholar 来回切、手工去重 | 时间都耗在搬运上 |
+| **全文难拿** | 有 OA 副本却要挨个网站找 PDF | 时间耗在搬运上 |
+| **多平台割裂** | PubMed / EBI / Google Scholar 来回切、手工去重 | 碎片化、不可累积 |
 
-dsh-pubmed 用 **实体归一化、关系语义、证据回查、跨源去重、被引直连** 五件事逐一回应这些痛点。
-它不替你读文献，而是让你**读到的每一篇都更可能是对的**。
-
----
-
-## 三大亮点
-
-### 亮点一：实体级检索 —— 免疫同义词噪音
-
-PubTator3 先把自由文本归一到**权威概念 ID**（`metformin` → `@CHEMICAL_Metformin` → `MESH:D008687`），
-再用"关系式"直达**支持某条关系**的文章，而不是靠关键词共现：
-
-```
-"二甲双胍能治什么病？给我证据文献"
-→ pubmed_pubtator_entity_id({ query: 'metformin', concept: 'chemical' })   # 文本 → 规范 @ID
-→ pubmed_pubtator_relations({ e1: '@CHEMICAL_Metformin', e2: 'disease', evidence: true })
-      @CHEMICAL_Metformin --[treat(8423)]--> @DISEASE_Diabetes_Mellitus_Type_2
-        ev: PMID 36619226, PMID 34904090, ...     ← 证据文献直出，可审计
-```
-
-同义词、缩写、大小写、语种差异全部由实体 ID 吸收——你问"阿霉素"，它找的是 `MESH:D004317` 下所有文献。
-
-### 亮点二：个人文献知识图谱 —— 证据可累积、可审计、可可视化
-
-每次取文章（`pubmed_fetch_articles`）在 `AUTO_GRAPH` 默认开启下**自动并入**当前会话图谱，无需手动建图：
-
-- **关键词节点**：MeSH 加权 + NLP 名词短语；
-- **concept 节点**：PubTator3 实体，带权威概念 ID（如 `IgA[973]`、`human[9606]`），**按 ID 跨文章去重**；
-- **curated 关系边**：treat / interact / ...，weight = publications 证据数，默认带 `evidencePmids` 支持文献；
-- **启发式关系边**："X 调控 Y" 这类词干关系（无依赖的兜底层，PubTator 不可用时自动降级）。
-
-```
-fetch_articles（自动入图）→ 多轮增量累积 → graph_get({format:'mermaid'}) 可视化 → graph_commit 持久化
-```
-
-满意后 `pubmed_graph_commit` 一键持久化到 `~/.dsh/dsh-pubmed-graph.json`（跨会话保留）。一张 NPG 配色卡片
-就能看清：哪些概念反复出现、哪些关系有文献支撑、你的综述覆盖了哪些方向。
-
-### 亮点三：跨源统一检索 + 被引数据 —— 一次拿全
-
-- **`pubmed_search_papers`（跨源统一检索）**：一条查询同时打 **PubMed + Europe PMC + OpenAlex**（默认三源），
-  按 DOI / PMID / 规范化标题**去重合并**，多平台命中的文章排最前，并顺带合并 Europe PMC / OpenAlex 的被引数，
-  `perSource` 报告各源成败；**可选**把 Semantic Scholar 也加进来（`sources: ['pubmed','europepmc','openalex','s2']`
-  或 `['all']`）——OpenAlex 快且免费（~0.5s），S2 是 opt-in（~3s/次、占共享额度）。
-- **Semantic Scholar 五工具**：补上 PubMed 生态缺失的三件事——**被引数**（`get_s2_detail`）、
-  **论文推荐**（`get_s2_recommendations`）、**标题精确匹配**（`match_paper_by_title`），
-  外加**全领域检索**（`search_s2`，不限于生物医学）。官方免费 API，无 key 也能用。
-
-### 亮点四：OA 全文 PDF —— 从"找到"到"拿到"
-
-检索结果自带 🟢OA 标记（OpenAlex/EPMC 免费返回，零额外请求），**agent 把 OA 命中批量交给
-`pubmed_fetch_pdf_oa`**（一次 ≤10 篇）即可拿到去重排序的下载链接；确认后 `download:true`
-把 PDF 存到本地（文件名用 PMID/DOI，**只下载不解析**）：
-
-```
-search_papers({ query: '...' })            # 命中标 🟢OA + oaUrl
-fetch_pdf_oa({ pmids: [...] })             # 一次拿全部 OA 链接（hostType/version/license）
-fetch_pdf_oa({ pmids: [...], download: true, outDir: '<工作区>/dsh-pubmed-pdfs' })
-                                           # ✓ PMID31341288.pdf (1262KB)
-```
-
-三源聚合（**Unpaywall** 权威 OA 状态 + **Europe PMC** render 链接 + **OpenAlex** best_oa_location）；
-出版社"HTML 拦截页"会被 **PDF 签名校验**识破并自动跳到下一个候选（如 arXiv/机构库），绝不把假 PDF 存给你。
+dsh-pubmed 用 **实体归一化、关系语义、证据回查、跨源去重、OA 全文直达** 逐一回应这些痛点。
+它不替你读文献，而是让你**读到的每一篇都更可能是对的、且拿得到全文**。
 
 ---
 
-## 26 个工具 · 按任务分组
+## 六大功能模块
 
-> 分组的逻辑：**先想你要做什么，再选这一组里的工具**。工具描述里也内置了互指路由，agent 不会调错。
+> 按模块组织，因为大多数时候你在 **agent 场景**下使用：你用自然语言说需求，agent 自动选择和串联工具。
+> 每个模块给出：**你怎么说 → agent 做什么 → 你得到什么**。
 
-### 🔍 检索
+### 模块一：文献检索 —— "这个方向到底有什么"
 
-> 💡 **宽口径扫描先看这里**：`pubmed_search_papers`（跨源统一检索）一次查 PubMed + Europe PMC + OpenAlex
-> 并去重合并，是回答"这个方向到底有哪些文献"的首选入口；下面的工具服务特定需求。
+**你说**："帮我调研 gut microbiome 与代谢组学的研究"、"找 CLDN5 和失眠相关的文献"
 
-| 工具 | 作用 | 什么时候用 |
-|---|---|---|
-| `pubmed_search_papers` | **⭐ 跨源统一检索（首选）**：PubMed + Europe PMC + **OpenAlex**（默认三源）去重合并排序；`sources` 加 `'s2'`/`'all'` 可并入 Semantic Scholar；`year` 跨源过滤、`sort` 按被引/年份 | 要一份多平台综合列表、宽口径扫描——**先试这个** |
-| `pubmed_pubtator_search` | PubTator3 语义 / 关系检索（@实体 / 布尔 / `relations:` 式） | 提到具体生物实体或药-病关系 |
-| `pubmed_search_articles` | PubMed 关键词检索（完整布尔 / 字段 / 日期语法） | 要字段限定、日期范围、出版类型过滤 |
-| `pubmed_europepmc_search` | Europe PMC 检索（MED/PMC/PPR/PAT/AGR 五源，游标分页） | PubMed 覆盖不足（预印本 / 专利 / 非期刊）|
-| `pubmed_search_s2` | Semantic Scholar 全领域检索（含被引数、归一化 ID） | 跨领域检索、要影响力信息（S2 引文图 / 推荐） |
-| `pubmed_find_related` | 从一篇已知文章顺藤摸瓜：相似 / 被引 / 参考文献 | 引文网络扩张 |
+**agent 做什么**：把你的说法归一到权威概念（"阿霉素" = `MESH:D004317`，免疫同义词/缩写/语种差异），同时查 **PubMed + Europe PMC + OpenAlex** 三个库，按 DOI/PMID/标题去重合并成一份列表。每篇自带**摘要、被引数、是否开放获取（🟢OA）**；语义检索模式直达"支持某关系"的文章，而不是关键词碰巧共现。
 
-### 📖 全文与元数据
+**你得到**：一份去重的文献列表——摘要 + 被引数 + OA 标记 + 多平台命中排最前；还能按年份过滤、按被引排序。
 
-| 工具 | 作用 | 什么时候用 |
-|---|---|---|
-| `pubmed_fetch_articles` | 按 PMID 取结构化文章（作者 / 摘要 / MeSH / 基金 / DOI / PMCID）；`AUTO_GRAPH` 默认开时**自动入图** | 要精读元数据、或给图谱喂数据 |
-| `pubmed_fetch_fulltext` | PMC 全文（JATS → 分节正文；可 `offset`/`maxCharacters` **分页续读**长文） | 40 页论文分页读，不冲爆上下文 |
-| `pubmed_fetch_pdf_oa` | **开放获取 PDF 发现**：给 **单个** DOI/PMID/PMCID 或**批量** `pmids[]`/`dois[]`/`pmcids[]`（≤10）→ 聚合 **Unpaywall + Europe PMC + OpenAlex** 三源，返回去重排序的 OA 链接列表（PDF 直链优先，带 hostType / version / license / OA 状态）；`download:true` 可**下载 PDF 到本地**（默认存到 `~/.dsh/dsh-pubmed-pdfs/`——插件无法得知会话工作区，**agent 知道**；想让 PDF 落在项目目录时由 agent 显式传 `outDir`；仅落盘不解析，出版社拦截页会自动跳到下一个候选链接） | 要 OA 全文 PDF、或想把 PDF 存到本地自己读；**批量**形式把检索结果一次转成下载列表 |
-| `pubmed_europepmc_fetch` | 按 source+id 取 EPM 完整记录（含未截断摘要） | 预印本 / 专利等非 PubMed 记录 |
+### 模块二：全文获取 —— "把论文拿下来读"
 
-### 📝 引用与 ID
+**你说**："把这几篇能免费下载的 PDF 下载下来"、"这篇文章全文讲了什么"
 
-| 工具 | 作用 | 什么时候用 |
-|---|---|---|
-| `pubmed_format_citations` | APA 7 / MLA 9 / BibTeX / RIS / Vancouver 引用 | 写稿引用、投稿格式 |
-| `pubmed_convert_ids` | DOI / PMID / PMCID 互转 | 手里是 DOI 想拿 PMID/PMCID |
-| `pubmed_lookup_citation` | 残缺引文（期刊 / 年份 / 卷 / 页 / 作者）→ PMID（ECitMatch） | 参考文献缺 ID，或想溯源某条引用 |
-| `pubmed_lookup_mesh` | MeSH 词表（树号 / 范围注释 / 入口词） | 确认规范主题词、扩同义词 |
-| `pubmed_spell_check` | 检索词拼写纠正（ESpell） | 不确定拼写时先纠错再搜 |
+**agent 做什么**：优先取 **PMC 结构化全文**（分节正文，长文自动分页）；不在 PMC 的走 **OA 三源聚合**（Unpaywall 权威 OA 状态 + Europe PMC + OpenAlex）找 PDF 直链，经你确认后批量下载到本地（默认 `~/.dsh/dsh-pubmed-pdfs/`，也可指定工作区目录）。出版社的"HTML 拦截页"会被自动识破并跳到下一个候选链接。
 
-### 🧬 PubTator3 概念层（语义 / 关系）
+**你得到**：可直接引用的分节全文（含摘要与各章节），或落在本地磁盘的真 PDF 文件（文件名用 PMID/DOI，方便辨认）。
 
-| 工具 | 作用 | 什么时候用 |
-|---|---|---|
-| `pubmed_pubtator_entity_id` | 自由文本生物概念 → 规范 @概念 ID（autocomplete） | 检索前先把"阿霉素"归一成 `@CHEMICAL_Doxorubicin` |
-| `pubmed_pubtator_relations` | 概念间 curated 关系（treat/cause/inhibit/...，带 publications 证据数；`evidence:true` 附支持文献 PMIDs） | "X 和 Y 有什么关系"、关系骨架扫描 |
-| `pubmed_pubtator_annotate` | 文本实体标注（Gene/Chemical/Disease/Mutation/CellLine/Species，带概念 ID；收 PMID 或 PMCID，>100 自动分批） | 把一篇文章的实体"解剖"出来 |
+### 模块三：证据与关系 —— "X 和 Y 有什么关系"
 
-### 🕸️ 知识图谱
+**你说**："二甲双胍能治什么病？给我证据文献"、"CLDN5 和血脑屏障损伤什么关系"
 
-| 工具 | 作用 | 什么时候用 |
-|---|---|---|
-| `pubmed_graph_add` | 把一轮文章**增量并入**当前会话图谱；`dryRun:true` 只预览不落盘 | 手动喂数据、或先预览会新增什么 |
-| `pubmed_graph_get` | 取会话 / 用户图谱（JSON，或 NPG 配色 mermaid 卡片） | 可视化、盘点已积累的知识 |
-| `pubmed_graph_commit` | **显式**把会话图谱并入持久化的用户图谱（默认不自动写） | 一轮调研收尾，存为长期资产 |
-| `pubmed_graph_reset` | 清空会话（或用户）图谱 | 换主题重来 |
+**agent 做什么**：用 PubTator3 的全库 curated 关系网络拉出**关系骨架**（每条带文献数），再对目标关系**回查支持文献 PMIDs**；也能做布尔组合（`@药物 AND @疾病`）检验关联强度。
 
-### 🌐 Semantic Scholar（被引 / 推荐 / 匹配）
+**你得到**：关系列表（treat/cause/inhibit/...，每条带证据数）+ 每条关系的**支持文献 PMIDs**——可审计、可引用。
 
-| 工具 | 作用 | 什么时候用 |
-|---|---|---|
-| `pubmed_get_s2_detail` | 单篇详情（被引数 / 参考文献数 / OA / 全部 ID） | 快速给已知论文补被引数 |
-| `pubmed_get_s2_citations` | **引用该篇**的文章列表 | 追踪一篇论文的下游影响 |
-| `pubmed_get_s2_recommendations` | "读了这篇还读哪些"的推荐 | 顺着一篇好论文找同类 |
-| `pubmed_match_paper_by_title` | 标题精确匹配 → ID / 被引数 / 元数据 | 手里有标题想定位到论文 |
+### 模块四：知识图谱 —— "帮我把课题文献管理起来"
+
+**你说**："把这个课题的文献管理起来"、"画一张图谱看看"、"这轮先存下来"
+
+**agent 做什么**：每轮检索的文献**自动并入**当前课题图谱（关键词 + 带权威 ID 的实体概念 + 关系边），多轮累积、按课题隔离；随时生成 **NPG 配色可视化卡片**；满意后一键持久化到个人图谱（跨会话保留）。
+
+**你得到**：一张图看清概念脉络、关系证据、覆盖方向——从"平铺的文献列表"变成"可累积的知识资产"。
+
+### 模块五：跨领域与影响力 —— "不止 PubMed"
+
+**你说**："这个方向有预印本吗"、"这篇被引多少"、"有没有类似的文章推荐"
+
+**agent 做什么**：Europe PMC 补预印本/专利/非期刊源；Semantic Scholar 补**被引数、论文推荐、标题精确匹配**和全领域检索（不限于生物医学）。
+
+**你得到**：更宽的覆盖面 + 影响力数据 + 相似文献推荐。
+
+### 模块六：引用与整理 —— "帮我整理引用"
+
+**你说**："这篇按 APA 和 BibTeX 引用"、"这个 DOI 对应的 PMID 是什么"、"参考文献里这条缺 ID 帮我找"
+
+**agent 做什么**：五种引用格式一步生成；DOI/PMID/PMCID 互转；残缺引文（期刊/年份/卷/页/作者）反查 PMID；MeSH 词表与拼写纠正。
+
+**你得到**：可直接粘贴的引用与准确的文献 ID。
 
 ---
 
-## 真实场景剧本
+## 典型场景串联
 
-### 剧本 A：写综述 —— 把"某药治某病"的证据链一次性拉全
+### 场景一：课题调研全流程（真实案例：CLDN5 × 失眠）
 
-```
-1. pubmed_pubtator_entity_id({ query: 'metformin', concept: 'chemical' })   # 文本 → @CHEMICAL_Metformin
-2. pubmed_pubtator_relations({ e1: '@CHEMICAL_Metformin', e2: 'disease', evidence: true })
-     # 关系骨架：treat(8423)→T2DM / treat(2275)→Neoplasms / ...，每条带证据文献 PMIDs
-3. pubmed_pubtator_search({ relationType: 'treat', e1: '@CHEMICAL_Metformin', e2: 'DISEASE' })
-     # 相关文章按相关度排序 + 年份/期刊 facets
-4. pubmed_fetch_articles({ pmids: [...] })   # 精读候选，AUTO_GRAPH 自动入图
-5. pubmed_graph_get({ scope: 'session', format: 'mermaid' })   # 证据链可视化
-```
-
-### 剧本 B：药物重定位 / 机制假设扫描
+> 以下是插件实测的真实执行记录。
 
 ```
-# 某个基因与所有疾病的关联全谱
-pubmed_pubtator_relations({ e1: '@GENE_TP53', e2: 'disease' })
-# 命中个位数关联 = 可能被低估的方向 → 用 search 钻取证据文章
-pubmed_pubtator_search({ query: '@GENE_TP53 AND @DISEASE_X' })
+你："帮我调研 CLDN5、ARRB2、NPRL2 三个基因与失眠相关的研究"
+
+① agent 归一实体 → ② 语义检索发现：
+   ⭐ PMID 37928369（2023）失眠患者血清 Claudin-5/ZO-1 水平的先导临床研究
+      —— ZO-1 显著升高且与失眠严重度正相关（直接证据！）
+
+你："哪些能免费下载？"
+③ 检索结果标 🟢OA → 批量查 OA 链接 → 4 篇里 3 篇开放获取
+
+你："下载下来"
+④ PDF 落盘（PMID37928369.pdf 3.4MB ✓）
+⑤ 闭源的那篇走 PMC 结构化正文继续精读
 ```
 
-### 剧本 C：选题新颖性检验
+**全程你只说了 4 句话。**
+
+### 场景二：药物重定位 / 机制假设扫描
 
 ```
-# 两个概念的共现文献量：命中个位数 ≈ 可能是空白方向
-pubmed_pubtator_search({ query: '@DISEASE_COVID_19 AND @GENE_PON1' })
-# 双平台交叉验证
-pubmed_search_papers({ query: 'COVID-19 AND PON1' })
+"TP53 和哪些疾病有关系？"→ 关系骨架全谱 → "其中哪些是冷门方向？"→ 命中个位数的关联
+→ "给这些方向找证据文献" → 语义检索钻取 → 图谱记录
 ```
 
-### 剧本 D：系统化文献管理 —— 多轮累积 + 可视化 + 持久化
+### 场景三：选题新颖性检验
 
 ```
-pubmed_fetch_articles({ pmids: [...] })        # 每轮自动入图
-# ... 多轮检索不断并入（按会话隔离）...
-pubmed_graph_get({ scope: 'session', format: 'mermaid', maxKeywords: 15 })   # 阶段性盘点
-pubmed_graph_commit({ confirm: true })         # 满意 → 持久化到个人图谱（跨会话保留）
-pubmed_graph_get({ scope: 'user' })            # 下次继续时取回
-```
-
-### 剧本 F：找开放获取全文 PDF（下载到本地自己读）
-
-```
-# ① 检索：结果里直接标了哪些是开放获取（🟢OA，零额外请求）
-pubmed_search_papers({ query: 'gut microbiome metabolomics' })
-#   → 15 篇命中，其中 9 篇标 🟢OA 并附 oaUrl（OpenAlex/EPMC 顺带返回，无需额外查询）
-#   末尾会提示：把 OA 那几篇的 DOI/PMID 交给 pubmed_fetch_pdf_oa
-
-# ② 批量拿下载链接（一次调用，最多 10 个 id）——这是"检索→下载列表"的主路径
-pubmed_fetch_pdf_oa({ pmids: ['34262212', '31341288', '40495162'] })
-#   → OA PDF lookup — 3 id(s): 3 open access, 3 with a direct PDF link
-#     ✅ PMID 34262212 → https://europepmc.org/articles/PMC8939302?pdf=render
-#     ✅ PMID 31341288 → https://iris.unitn.it/bitstream/...
-#     每个链接带 hostType / version / license
-
-# ③ 单个 id 也行（拿全部候选链接）
-pubmed_fetch_pdf_oa({ doi: '10.1038/nature12373' })
-#   → ✅ Open access (bronze) — 9 个链接（出版社 PDF / arXiv PDF / EPMC render / 机构库 …）
-
-# ④ 确认后批量下载（默认存 ~/.dsh/dsh-pubmed-pdfs/；agent 知道工作区时显式传 outDir，
-#    文件名用 PMID/DOI 便于辨认）
-pubmed_fetch_pdf_oa({ pmids: ['34262212', '31341288'], download: true, outDir: '<工作区>/dsh-pubmed-pdfs' })
-#   → ✓ PMID31341288.pdf (1262KB)
-#     出版社链接若被反爬/同意墙挡住，自动跳到下一个候选；全被挡时给出可行动提示
-```
-
-> 该工具**只负责找到并下载** PDF（不解析内容）；PMC 结构化全文（分节 JATS）走 `pubmed_fetch_fulltext`。
-> 检索结果里的 `isOpenAccess` / `oaUrl` 字段（**B**）让你知道该对哪些命中调 `fetch_pdf_oa`（**A** 支持批量）。
-
----
-
-### 剧本 E：精确引用与 ID 管理
-
-```
-# 残缺引文定位：手头只有期刊/年份/卷/页/作者
-pubmed_lookup_citation({ citations: [{ journal: 'Nucleic Acids Res', year: '2013', volume: '41', firstPage: 'D36', authorName: 'Benson' }] })
-# 引用格式：APA / BibTeX 一步到位
-pubmed_format_citations({ pmids: ['23193287'], styles: ['apa', 'bibtex'] })
-# 被引数与 OA PDF：判断一篇论文的分量
-pubmed_get_s2_detail({ paperId: 'PMID:23193287' })
+"这两个概念之间有关联文章吗？"→ 布尔检索命中个位数 = 可能是空白方向
+→ "双平台交叉确认" → 统一检索去重 → 结论可信度倍增
 ```
 
 ---
 
 ## 配置
 
-bundle 运行时**零配置即可用**。可选配置建议写进 profile 的 patch 行 `config`（比环境变量更稳，
-因为环境变量可能因 DSH 启动方式不同而读不到）：
+bundle 运行时**零配置即可用**。可选配置建议写进 profile 的 patch 行 `config`（比环境变量更稳）：
 
 ```yaml
 # 你的 profile 文件，如 C:\Users\<你>\.dsh\profiles\<profile>\cordis.patch.yml
@@ -289,54 +170,62 @@ bundle 运行时**零配置即可用**。可选配置建议写进 profile 的 pa
 - id: pubmed
   config:
     NCBI_API_KEY: '<可选：NCBI API key>'
-    # AUTO_GRAPH: false   # 默认 true：fetch_articles 自动并入会话图谱
-    # PUBTATOR: false     # 默认 true：建图概念层（PubTator 概念 + curated 关系）
-    # S2_ENABLED: false   # 默认 true：Semantic Scholar 五工具
-    # S2_API_KEY: '<可选：免费 S2 key>'
-    # EUTILS_BASE_URL: 'https://你的反代/entrez/eutils'   # 可选：自建反代
+    # AUTO_GRAPH: false    # 默认 true：检索到的文献自动进知识图谱
+    # PUBTATOR: false      # 默认 true：实体概念层
+    # S2_ENABLED: false    # 默认 true：Semantic Scholar 工具
+    # UNPAYWALL_EMAIL: '<可选：Unpaywall 联系邮箱>'
+    # PDF_DIR: 'D:/papers' # 可选：PDF 下载目录（默认 ~/.dsh/dsh-pubmed-pdfs/）
 ```
 
 | 配置项 | 默认 | 作用 |
 |---|---|---|
-| `NCBI_API_KEY` | 无 | NCBI 限流提速：10 req/s（无 key ≈3 req/s）|
-| `NCBI_ADMIN_EMAIL` | 内置 noreply | NCBI 合规联系邮箱 |
-| `AUTO_GRAPH` | `true` | `fetch_articles` 自动并入会话图谱 |
-| `PUBTATOR` | `true` | 建图概念层开关（关掉只走启发式关键词/关系）|
-| `PUBTATOR_EDGE_EVIDENCE` | `true` | curated 关系边附证据文献 PMIDs |
-| `PUBTATOR_RELATION_PROBE` | `3`（上限 6）| 每篇文章的关系探测概念数 |
-| `PUBTATOR_RELATION_PROBE_ARTICLES` | `8`（上限 50）| 每次建图合并的关系探测文章数 |
-| `EUROPEPMC_ENABLED` | `true` | Europe PMC 双工具开关 |
-| `S2_ENABLED` | `true` | Semantic Scholar 五工具开关 |
-| `S2_API_KEY` | 无 | S2 免费 key：1 req/s（无 key 走共享 100 req/5min）|
-| `UNPAYWALL_EMAIL` | 内置 noreply 地址 | `pubmed_fetch_pdf_oa` 查询 Unpaywall 的联系邮箱（**必须真实邮箱**，占位地址会被 422 拒）；内置地址已实测可用 |
-| `DSH_PUBMED_PDF_DIR` | `~/.dsh/dsh-pubmed-pdfs/` | PDF 下载目录（环境变量）；单次调用可用 `outDir` 覆盖（agent 知道会话工作区，可显式传 `<工作区>/dsh-pubmed-pdfs/`）|
-| `HEURISTIC_RELATIONS` | `true` | 启发式关系层开关（"X 调控 Y" 词干抽取）；设 `false` 得到**纯 curated 图**（只剩 PubTator 关系）|
-| `RELATION_ENDPOINT_REQUIRE_KEYWORD` | `true` | 关系边两端必须是本文关键词（**语义门**，拦截 "they share similar" 类语法碎片入图）|
-| `EUTILS_BASE_URL` / `PUBTATOR_BASE_URL` / `EPMC_BASE_URL` | 官方端点 | 自建反代端点，扛区域网络波动 |
-| `SKILL_DOC` | `true` | 激活时自动注册 agent 路由技能文档 |
+| `NCBI_API_KEY` | 无 | NCBI 限流提速（10 req/s）|
+| `AUTO_GRAPH` | `true` | 检索到的文献自动并入知识图谱 |
+| `PUBTATOR` | `true` | 实体概念层（PubTator 概念 + curated 关系）|
+| `PUBTATOR_EDGE_EVIDENCE` | `true` | 关系边附证据文献 |
+| `PUBTATOR_RELATION_PROBE` / `_ARTICLES` | 3 / 8 | 关系探测预算 |
+| `EUROPEPMC_ENABLED` / `S2_ENABLED` | `true` | 对应模块开关 |
+| `S2_API_KEY` | 无 | Semantic Scholar 免费key：1 req/s（无 key 共享 100 req/5min）|
+| `UNPAYWALL_EMAIL` | 内置地址 | Unpaywall 联系邮箱（须真实邮箱）|
+| `PDF_DIR` / `DSH_PUBMED_PDF_DIR` | `~/.dsh/dsh-pubmed-pdfs/` | PDF 下载目录 |
+| `EUTILS_BASE_URL` / `PUBTATOR_BASE_URL` / `EPMC_BASE_URL` | 官方端点 | 自建反代端点 |
+| `SKILL_DOC` | `true` | Agent 路由技能自动注册 |
+| `RELATION_ENDPOINT_REQUIRE_KEYWORD` | `true` | 图谱关系边语义门 |
+| `HEURISTIC_RELATIONS` | `true` | 启发式关系层（false = 纯 curated 图）|
 
-**内置限速**：NCBI E-utilities 走全局队列（有 key ~120ms / 无 key ~350ms），PubTator3 走独立 ~350ms 队列
-（官方 3 req/s，与 API key 无关），Semantic Scholar 走独立队列（无 key ~3s / 有 key ~1.1s）。并行调用会自动串行化，不会触发 429。
+> 限速、重试、OA 签名校验等均为内置行为，无需配置。
 
 ---
 
 ## 无代理网络（大陆直连）
 
-免费直连是本插件的定位。从 v0.3.5 起，无代理时依然可用：
-
-- **自动重试**：网络类失败按指数退避自动重试（覆盖 NCBI 的"黑洞窗口"），HTTP 4xx/5xx 视为真实答案不重试；
-- **Europe PMC 降级链**：NCBI 持续不可达时，`search_articles` / `convert_ids` / `find_related(cited_by/references)`
-  自动切换 Europe PMC（其 MED 源即 PubMed 本体），结果带 `[via europepmc fallback]` 标记；
-- **可行动报错**：自动区分"本地代理已挂"与"目标不可达"，不再抛裸 `fetch failed`；
-- **自建反代**：极致稳定需求可配 `*_BASE_URL` 指向自己的反向代理（v0.4.0 已实现）。
+免费直连是本插件的定位。网络类失败自动指数退避重试，NCBI 不可达时检索自动切换 Europe PMC（其 MED 源即 PubMed 本体），报错区分"本地代理已挂"与"目标不可达"。极致稳定需求可配 `*_BASE_URL` 自建反代。
 
 ---
 
-## Agent 路由技能（自动注册）
+## 给 Agent 的说明
 
-随包附带 `skills/dsh-pubmed/SKILL.md`：一份给 agent 看的 **26 工具路由指南**（按话术选入口、建图链路组合流、
-四类搜索边界、限速常识）。**插件激活时自动写入 `~/.dsh/skills/dsh-pubmed/`**（DSH 扫描的技能 root），
-纯净安装零手工；内容随版本升级自动改写（幂等）。`SKILL_DOC:false` 可关闭。
+随包附带 `skills/dsh-pubmed/SKILL.md`——**激活时自动注册**到 `~/.dsh/skills/dsh-pubmed/`（DSH 扫描的技能 root）。新会话的 agent 会自动读到：26 个工具的完整路由规则、模块串联流程、OA 工作流、易错点清单。
+
+**你不需要记住任何工具名**——用自然语言描述需求即可。如果你的 agent 需要了解调用细节，让它读 SKILL 或工具描述即可。
+
+---
+
+## 附录：26 工具速查
+
+> 供查阅的完整清单。日常使用无需记忆——agent 会自动路由。
+
+**检索**：`pubmed_search_papers`（跨源统一检索 ⭐）· `pubmed_search_articles`（PubMed 完整语法，含摘要）· `pubmed_europepmc_search`（预印本/专利）· `pubmed_pubtator_search`（语义/关系检索）· `pubmed_search_s2`（全领域）· `pubmed_find_related`（相似/被引/参考文献）
+
+**全文与元数据**：`pubmed_fetch_articles`（结构化文章 + 自动入图）· `pubmed_fetch_fulltext`（PMC 分节全文，分页）· `pubmed_fetch_pdf_oa`（OA PDF 发现 + 下载）· `pubmed_europepmc_fetch`（EPM 完整记录）
+
+**引用与 ID**：`pubmed_format_citations`（APA/MLA/BibTeX/RIS/Vancouver）· `pubmed_convert_ids`（DOI/PMID/PMCID 互转）· `pubmed_lookup_citation`（残缺引文→PMID）· `pubmed_lookup_mesh`（MeSH 词表）· `pubmed_spell_check`（拼写纠正）
+
+**PubTator3 概念层**：`pubmed_pubtator_entity_id`（文本→概念 ID）· `pubmed_pubtator_relations`（curated 关系 + 证据）· `pubmed_pubtator_annotate`（实体标注）
+
+**知识图谱**：`pubmed_graph_add`（增量入图）· `pubmed_graph_get`（JSON/mermaid）· `pubmed_graph_commit`（持久化）· `pubmed_graph_reset`（清空）
+
+**Semantic Scholar**：`pubmed_get_s2_detail`（被引数）· `pubmed_get_s2_citations`（引文列表）· `pubmed_get_s2_recommendations`（推荐）· `pubmed_match_paper_by_title`（标题匹配）
 
 ---
 
@@ -378,17 +267,11 @@ dsh plugin --profile web add dsh-pubmed@latest
 
 ### 更新
 
-`dsh plugin` 是 pnpm 的薄转发器——`update` 直接透传 pnpm 的 update，并在成功后按新版本的
-`dsh.bundle` 声明自动对齐 bundle 层（若新版新增或移除了 bundle 声明也会自动生效，无需手动改 patch）。
-
 ```bash
-# 更新到最新版
-dsh plugin --profile web update dsh-pubmed@latest
-# 更新到指定版本（如 0.4.0）
-dsh plugin --profile web update dsh-pubmed@0.4.0
+dsh plugin --profile web update dsh-pubmed@latest     # 或 @0.4.2 指定版本
 ```
 
-> 更新后**重启 DSH** 生效。`add dsh-pubmed@latest` 同样可作升级用（已安装时 pnpm add @latest 也会升到最新）。
+更新后**重启 DSH** 生效。
 
 ### 卸载
 
@@ -413,22 +296,22 @@ dsh plugin --profile web update dsh-pubmed@0.4.0
 
 ## 版本历史
 
-- **v0.4.2**（开发中）— **OA PDF 发现与下载 + 图谱去噪**：新增第 26 个工具 `pubmed_fetch_pdf_oa`——给**单个或批量**（≤10）DOI/PMID/PMCID 聚合 **Unpaywall + Europe PMC + OpenAlex** 三源，返回去重排序的 OA 链接列表（PDF 直链优先，带 hostType / version / license / OA 状态）；`download:true` 把 PDF 存到 `~/.dsh/dsh-pubmed-pdfs/`（文件名用 PMID/DOI，仅落盘不解析；agent 知道会话工作区，可用 `outDir` 把 PDF 放进项目目录）；**PDF 签名校验**（出版社 HTML 拦截页不会被当成 PDF，自动跳到下一个候选链接）；**统一搜索结果新增 `isOpenAccess` / `oaUrl` / `oaStatus` 标记**（零额外请求）；**图谱去噪**：关系跨度严格清洗 + 端点 ∈ 本文关键词语义门（`RELATION_ENDPOINT_REQUIRE_KEYWORD`）+ mermaid 不再补入 count=0 碎片端点 + `HEURISTIC_RELATIONS:false` 纯 curated 开关；新增 `UNPAYWALL_EMAIL` 配置。
-- **v0.4.1** — **统一搜索增强**：`pubmed_search_papers` 默认三源（PubMed + Europe PMC + **OpenAlex**——快速、免费、全领域、带被引数）；`sources` 加 `'s2'`（opt-in Semantic Scholar）或 `'all'`（四源）；新增 `sort`（relevance/citations/year）与 `year` 跨源过滤（**下推各源查询**，修复了"过滤后 0 条"的问题）；agent 路由描述补全（`search_articles`/`europepmc_search` 现在指向统一搜索）。
-- **v0.4.0** — **生态补全 + 反代可配**：`pubmed_search_papers` 跨源统一检索（去重合并 + perSource 报告）；Semantic Scholar 五工具（被引数 / 推荐 / 标题匹配 / 全领域）；`fetch_fulltext` 分页切片；`EUTILS_BASE_URL` / `PUBTATOR_BASE_URL` / `EPMC_BASE_URL` 可配；发布后自动同步 npmmirror（国内 1 分钟内可装）。
-- **v0.3.9** — 移除已废弃的 `pubmed_extract_keywords`（19 工具）；README/SKILL/cordis 清理。
-- **v0.3.8** — P4 批次二：Europe PMC 网络重试层；用户图谱原子写（防崩溃损坏）；图写入按会话串行化；@ 前缀自动归一化；SKILL 扩充；npm scripts + CI 测试门。
-- **v0.3.7** — P0 修复：大规模建图不再超时（mergeGraph 批量预取 200 篇 200+ 次调用 → 2 次；探测/证据预算；富集 150s 死线；httpGet 超时真正生效）。
-- **v0.3.6** — 技能文档自注册（激活时自动写入 `~/.dsh/skills/`，幂等）。
-- **v0.3.5** — 无代理韧性：网络分类重试 + Europe PMC 降级链 + 可行动报错。
-- **v0.3.4** — 显示层补齐（关系证据行 / 图谱证据边汇总 / annotate 分批信息）；500 篇建图压测 70ms。
-- **v0.3.3** — 关系证据回查（`evidence:true` → 支持文献 PMIDs 入边）；annotate 自动分批 + 会话缓存；类型优先探测；修复自环/占位 ID/mermaid classDef；`graph_add({dryRun})` 预览。
-- **v0.3.2** — annotate 支持 PMCID；7 个工具描述加路由语句；随包 SKILL 路由技能。
-- **v0.3.1** — 真机验收；`pubtator_search` 的 `query` 改可选（便捷参数真正可用）。
-- **v0.3.0** — 第 20 个工具 `pubmed_pubtator_search`：语义 / 布尔 / 关系式检索 + facets。
-- **v0.2.2** — PubTator 独立 350ms 限流队列；关系探测先过滤后截断。
-- **v0.2.1** — PubTator3 概念层（annotate / entity_id / relations）+ 建图 concept 节点。
-- **v0.2.0** — 个人文献知识图谱引擎：会话/用户双图谱、增量合并、mermaid NPG 配色、AUTO_GRAPH、NLP 关键词与关系边。
+- **v0.4.2**（开发中）— **OA PDF 发现与下载 + 图谱去噪**：新增第 26 个工具 `pubmed_fetch_pdf_oa`——给**单个或批量**（≤10）DOI/PMID/PMCID 聚合 **Unpaywall + Europe PMC + OpenAlex** 三源，返回去重排序的 OA 链接列表；`download:true` 把 PDF 存到本地（文件名用 PMID/DOI，仅落盘不解析）；**PDF 签名校验**（出版社 HTML 拦截页自动跳过）；**统一搜索结果新增 OA 标记**（零额外请求）；**图谱去噪**（语义门 + mermaid 裁剪 + 纯 curated 开关）；新增 `UNPAYWALL_EMAIL` 配置。
+- **v0.4.1** — **统一搜索增强**：`pubmed_search_papers` 默认三源（PubMed + Europe PMC + **OpenAlex**）；`sources` 加 `'s2'`/`'all'`；`sort` 与 `year` 跨源过滤（下推各源查询）；agent 路由描述补全。
+- **v0.4.0** — **生态补全 + 反代可配**：跨源统一检索；Semantic Scholar 五工具；`fetch_fulltext` 分页切片；BASE_URL 可配；发布后自动同步 npmmirror。
+- **v0.3.9** — 移除已废弃的 `pubmed_extract_keywords`。
+- **v0.3.8** — Europe PMC 网络重试；图谱原子写 + 串行化；@ 前缀归一化；SKILL 扩充；npm scripts + CI 测试门。
+- **v0.3.7** — 大规模建图不再超时（批量预取 + 预算 + 超时分级）。
+- **v0.3.6** — 技能文档自注册。
+- **v0.3.5** — 无代理韧性（重试 + EBI 降级链 + 可行动报错）。
+- **v0.3.4** — 显示层补齐；500 篇建图压测 70ms。
+- **v0.3.3** — 关系证据回查；annotate 分批 + 缓存；`graph_add({dryRun})` 预览。
+- **v0.3.2** — annotate 支持 PMCID；SKILL 路由技能随包。
+- **v0.3.1** — 真机验收；`pubtator_search` query 可选。
+- **v0.3.0** — `pubmed_pubtator_search` 语义/关系检索。
+- **v0.2.2** — PubTator 独立限流队列；探测先过滤后截断。
+- **v0.2.1** — PubTator3 概念层 + 建图 concept 节点。
+- **v0.2.0** — 个人文献知识图谱引擎。
 - **v0.1.x** — 初版：自 [`@cyanheads/pubmed-mcp-server`](https://github.com/cyanheads/pubmed-mcp-server) 移植的 11 个 PubMed 工具。
 
 > 逐版提交细节见 [git tags](https://github.com/aiyacharley/dsh-pubmed/tags)；设计文档见
@@ -451,9 +334,8 @@ Apache-2.0。
 
 - **来源**：最初移植自 [`@cyanheads/pubmed-mcp-server`](https://github.com/cyanheads/pubmed-mcp-server)
   （Apache-2.0，作者 Casey Hand）——检索、文章元数据、全文、引用、MeSH、ID 转换等核心 PubMed 能力源于该项目。
-- **本插件的扩展**（原项目没有的能力）：个人文献知识图谱引擎（会话/用户双图谱、增量合并）、
-  PubTator3 概念层（带权威概念 ID 的实体节点 + curated 关系边）、启发式 NLP（名词短语关键词 + 词干关系抽取）、
-  NPG 配色 mermaid 可视化、跨源统一检索、Semantic Scholar 直连、代理网络兜底、配置驱动的双策略（主路径+兜底）等，
-  均为本插件原创设计实现。
+- **本插件的扩展**（原项目没有的能力）：个人文献知识图谱引擎、PubTator3 概念层、启发式 NLP、
+  NPG 配色 mermaid 可视化、跨源统一检索（含 OpenAlex）、Semantic Scholar 直连、OA 全文 PDF 发现与下载、
+  无代理韧性、配置驱动的双策略设计等，均为本插件原创实现。
 
-> 因此本插件不再是单纯的"移植版"：PubMed 检索层致敬原项目，知识图谱与概念层为独立扩展。
+> 本插件不再是单纯的"移植版"：PubMed 检索层致敬原项目，知识图谱、概念层与统一检索为独立扩展。

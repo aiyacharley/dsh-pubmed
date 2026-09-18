@@ -3,13 +3,13 @@
 [![npm version](https://img.shields.io/npm/v/dsh-pubmed)](https://www.npmjs.com/package/dsh-pubmed)
 [![Listed on dsh-plugin.org](https://dsh-plugin.org/badges/listed.svg)](https://dsh-plugin.org/plugins/aiyacharley/dsh-pubmed)
 
-> **An "entity-level + evidence-chain" engine for literature research**: one DeepSeek Harness (DSH)
-> plugin that unifies PubMed / Europe PMC / OpenAlex / PubTator3 / Semantic Scholar — **26 native model tools**,
-> no MCP client, no paid proxy, pure JS with zero build step.
+> **An "entity-level + evidence-chain + full-text-reachable" engine for literature research**: one DeepSeek
+> Harness (DSH) plugin that unifies PubMed / Europe PMC / OpenAlex / PubTator3 / Semantic Scholar —
+> **26 native model tools**, no MCP client, no paid proxy, pure JS with zero build step.
 >
-> In one sentence: **upgrade from "keyword matching" to "entity normalization + relation semantics +
-> auditable evidence + reachable OA full text", turning 80% of mechanical database sifting into 20%
-> high-quality reading time.**
+> Just state your need in plain language — "find papers on X and download whatever is freely available" —
+> and the agent picks the right tools, chains the workflow, and puts the results in front of you.
+> Results come with **abstracts, citation counts, and open-access flags**; the full text is reachable.
 
 ---
 
@@ -17,12 +17,12 @@
 
 - [🚀 Install (2-minute start)](#-install-2-minute-start)
 - [Why you need it](#why-you-need-it)
-- [Three highlights](#three-highlights)
-- [26 tools · grouped by task](#26-tools--grouped-by-task)
-- [Real-world scenario scripts](#real-world-scenario-scripts)
+- [Six capability modules](#six-capability-modules)
+- [Real-world scenario chains](#real-world-scenario-chains)
 - [Configuration](#configuration)
 - [No-proxy networks (mainland-China direct)](#no-proxy-networks-mainland-china-direct)
-- [Agent routing skill (auto-registered)](#agent-routing-skill-auto-registered)
+- [For agents](#for-agents)
+- [Appendix: the 26 tools at a glance](#appendix-the-26-tools-at-a-glance)
 - [Install & uninstall (complete)](#install--uninstall-complete)
 - [Version history](#version-history)
 - [Requirements](#requirements)
@@ -45,8 +45,8 @@ Then **restart DSH** — `pubmed_*` tools appear in every session. Sanity check:
 pubmed_spell_check({ query: 'microbiom' })    # → corrected: "microbiome"
 ```
 
-> Zero configuration required. More install options (paste-to-agent auto-install / manual patch) are at
-> the bottom under [Install & uninstall (complete)](#install--uninstall-complete); uninstall lives in the same section.
+> Zero configuration required. More install options at the bottom under
+> [Install & uninstall (complete)](#install--uninstall-complete).
 
 ---
 
@@ -59,236 +59,125 @@ When you do literature research, you have almost certainly hit these pain points
 | **Synonym misses** | Searching `DOX` misses "doxorubicin"; `HER2` misses `ERBB2` | Half the relevant papers slip through |
 | **Noise** | Keyword co-occurrence pulls in papers that merely mention the term | Only 1 in 10 hits is actually relevant |
 | **Broken evidence chains** | You read "drug X treats disease Y" but cannot tell which papers support it | You hesitate to cite it |
-| **No citation counts** | PubMed itself does not provide citation data | Judging impact requires third-party sites |
-| **Fragmented platforms** | Bouncing between PubMed / EBI / Google Scholar, de-duplicating by hand | Time is lost on plumbing, not reading |
+| **Hard-to-get full text** | An OA copy exists but you hunt for the PDF site by site | Time lost on plumbing |
+| **Fragmented platforms** | Bouncing between PubMed / EBI / Google Scholar, de-duplicating by hand | Fragmented, non-cumulative |
 
 dsh-pubmed addresses each with **entity normalization, relation semantics, evidence lookups,
-cross-source de-duplication, and direct citation data**. It does not read the literature for you —
-it makes **every paper you read far more likely to be the right one**.
+cross-source de-duplication, and direct OA full text**. It does not read the literature for you —
+it makes **every paper you read far more likely to be the right one, and actually obtainable**.
 
 ---
 
-## Three highlights
+## Six capability modules
 
-### Highlight 1: Entity-level search — immune to synonym noise
+> Organized by module, because most usage is **agent-driven**: you state the need in plain language and the
+> agent selects and chains the tools. Each module gives: **what you say → what the agent does → what you get**.
 
-PubTator3 first normalizes free text to an **authoritative concept ID** (`metformin` →
-`@CHEMICAL_Metformin` → `MESH:D008687`), then a "relation query" reaches the papers that
-**support a specific relationship**, instead of relying on keyword co-occurrence:
+### Module 1: Literature search — "what is out there on this topic"
 
-```
-"What diseases does metformin treat? Show me the evidence"
-→ pubmed_pubtator_entity_id({ query: 'metformin', concept: 'chemical' })   # text → canonical @ID
-→ pubmed_pubtator_relations({ e1: '@CHEMICAL_Metformin', e2: 'disease', evidence: true })
-      @CHEMICAL_Metformin --[treat(8423)]--> @DISEASE_Diabetes_Mellitus_Type_2
-        ev: PMID 36619226, PMID 34904090, ...     ← supporting papers, directly auditable
-```
+**You say**: "survey gut microbiome and metabolomics", "find papers on CLDN5 and insomnia"
 
-Synonyms, abbreviations, casing and language differences are all absorbed by the entity ID — ask
-"doxorubicin" and it finds every paper under `MESH:D004317`.
+**The agent**: normalizes your words into authoritative concepts ("doxorubicin" = `MESH:D004317` —
+immune to synonyms/abbreviations/language), queries **PubMed + Europe PMC + OpenAlex** in one pass,
+merges by DOI/PMID/title into a single de-duplicated list. Every hit carries its **abstract, citation
+count, and open-access flag (🟢OA)**; semantic search mode reaches papers *supporting a relation* rather
+than keyword co-occurrences.
 
-### Highlight 2: A personal literature knowledge graph — auditable, cumulative, visual
+**You get**: one de-duplicated list — abstracts + citations + OA flags + multi-platform hits ranked first;
+filterable by year, sortable by citations.
 
-Every `pubmed_fetch_articles` call **auto-merges** into the current session graph while `AUTO_GRAPH`
-is on (default) — no manual graph building:
+### Module 2: Full text — "put the paper in my hands"
 
-- **Keyword nodes**: MeSH-weighted + NLP noun phrases;
-- **concept nodes**: PubTator3 entities with authoritative IDs (e.g. `IgA[973]`, `human[9606]`),
-  **deduplicated by ID across articles**;
-- **curated relation edges**: treat / interact / ..., weight = publication-count evidence, carrying
-  `evidencePmids` supporting papers by default;
-- **heuristic relation edges**: stem-based "X regulates Y" (a dependency-free fallback that runs even
-  when PubTator is unavailable).
+**You say**: "download whatever is freely available for these papers", "what does this paper actually say"
 
-```
-fetch_articles (auto-merges) → incremental multi-round accumulation → graph_get({format:'mermaid'}) → graph_commit
-```
+**The agent**: prefers **PMC structured full text** (sectioned body, long papers auto-paged); if not in
+PMC, it aggregates **three OA sources** (Unpaywall authoritative status + Europe PMC + OpenAlex) for PDF
+links, and after your confirmation batch-downloads them locally (default `~/.dsh/dsh-pubmed-pdfs/`, or a
+workspace folder). Publisher "HTML interstitials" are detected and the chain advances to the next candidate.
 
-When you are happy, `pubmed_graph_commit` persists everything to `~/.dsh/dsh-pubmed-graph.json`
-(persists across sessions). One NPG-palette card shows: which concepts recur, which relations have
-supporting literature, and which directions your review already covers.
+**You get**: quotable sectioned full text (abstract + sections), or real PDF files on disk
+(filenames keyed by PMID/DOI).
 
-### Highlight 3: Cross-source unified search + citation data — everything in one pass
+### Module 3: Evidence & relations — "how are X and Y related"
 
-- **`pubmed_search_papers` (cross-source unified search)**: one query over **PubMed + Europe PMC + OpenAlex**
-  (default three sources), **deduplicated and merged** by DOI / PMID / normalized title, multi-platform hits rank
-  first, and Europe PMC / OpenAlex citation counts are merged in; `perSource` reports each platform's
-  success/failure; Semantic Scholar can be added too (`sources: ['pubmed','europepmc','openalex','s2']` or
-  `['all']`) — OpenAlex is fast and key-free (~0.5s), S2 is opt-in (~3s/call, shared budget).
-- **Five Semantic Scholar tools**: fill the three gaps the PubMed ecosystem lacks — **citation counts**
-  (`get_s2_detail`), **paper recommendations** (`get_s2_recommendations`), **exact title matching**
-  (`match_paper_by_title`), plus **all-field search** (`search_s2`, not biomedical-only).
-  Official free API; usable without a key.
+**You say**: "what diseases does metformin treat? show me the evidence", "how does CLDN5 relate to
+blood-brain barrier injury"
 
-### Highlight 4: Open-access full-text PDF — from "found" to "in hand"
+**The agent**: pulls a **relation skeleton** from PubTator3's curated cross-database network (every edge
+weighted by publication count), then looks up **supporting article PMIDs** for the relations you care
+about; boolean combos (`@drug AND @disease`) gauge association strength.
 
-Search results are already tagged 🟢OA (OpenAlex/EPMC return it for free, zero extra requests); the agent
-hands the OA hits to `pubmed_fetch_pdf_oa` **in batch** (≤10 per call) to get one de-duplicated download
-list, then saves the PDFs with `download:true` (filenames keyed by PMID/DOI, **bytes only — never parsed**):
+**You get**: relation lists (treat/cause/inhibit/..., evidence-weighted) + **supporting PMIDs per
+relation** — auditable and citable.
 
-```
-search_papers({ query: '...' })            # hits tagged 🟢OA + oaUrl
-fetch_pdf_oa({ pmids: [...] })             # all OA links in one call (hostType/version/license)
-fetch_pdf_oa({ pmids: [...], download: true, outDir: '<workspace>/dsh-pubmed-pdfs' })
-                                           # ✓ PMID31341288.pdf (1262KB)
-```
+### Module 4: Knowledge graph — "manage this project's literature for me"
 
-Three sources aggregated (**Unpaywall** authoritative OA status + **Europe PMC** render links +
-**OpenAlex** best_oa_location); a publisher "HTML interstitial" is caught by **PDF signature validation**
-and the chain auto-advances to the next candidate (arXiv, repository copy) — a fake PDF is never saved.
+**You say**: "keep track of this project's literature", "draw me a map", "save this round"
 
----
+**The agent**: every retrieval round **auto-merges** into the project graph (keywords + typed concept
+nodes + relation edges), accumulates across rounds, isolated per session; an **NPG-palette visual card**
+anytime; one command persists it into your personal graph (survives sessions).
 
-## 26 tools · grouped by task
+**You get**: one picture of concepts, evidence-backed relations and coverage — literature lists become a
+cumulative knowledge asset.
 
-> The grouping logic: **decide what you want to do first, then pick the tool from that group**.
-> Tool descriptions also carry cross-references, so the agent will not mis-route.
+### Module 5: Cross-field & impact — "beyond PubMed"
 
-### 🔍 Search
+**You say**: "any preprints on this?", "how many citations does this have?", "anything similar worth reading?"
 
-> 💡 **Start here for broad sweeps**: `pubmed_search_papers` (cross-source unified search) queries
-> PubMed + Europe PMC + OpenAlex and de-duplicates the result — the go-to entry for "what is out there
-> on this topic". The tools below serve specific needs.
+**The agent**: Europe PMC adds preprints/patents/non-journal sources; Semantic Scholar adds **citation
+counts, paper recommendations, exact title matching**, and all-field search (not biomedical-only).
 
-| Tool | What it does | When to use |
-|---|---|---|
-| `pubmed_search_papers` | **⭐ Cross-source unified search (preferred)**: PubMed + Europe PMC + **OpenAlex** (default three sources) deduped & merged; add `'s2'`/`'all'` to `sources` for Semantic Scholar; `year` cross-source filter, `sort` by citations/year | One consolidated multi-platform list, broad sweeps — **try this first** |
-| `pubmed_pubtator_search` | PubTator3 semantic / relation search (@entity / boolean / `relations:`) | A specific bioconcept or drug/gene-disease relation is named |
-| `pubmed_search_articles` | Full PubMed keyword search (boolean / field / date syntax) | Field filters, date ranges, publication-type filters |
-| `pubmed_europepmc_search` | Europe PMC search (MED/PMC/PPR/PAT/AGR, cursor paging) | PubMed too narrow (preprints / patents / non-journal) |
-| `pubmed_search_s2` | Semantic Scholar all-field search (citation counts, normalized IDs) | Cross-field search, impact info (S2 citation graph / recommendations) |
-| `pubmed_find_related` | Grow from one known paper: similar / citing / references | Citation-network expansion |
+**You get**: wider coverage + impact data + similar-paper suggestions.
 
-### 📖 Full text & metadata
+### Module 6: Citations & housekeeping — "fix my references"
 
-| Tool | What it does | When to use |
-|---|---|---|
-| `pubmed_fetch_articles` | Structured articles by PMID (authors / abstract / MeSH / grants / DOI / PMCID); **auto-merges** into the graph with `AUTO_GRAPH` on | Deep metadata, or feeding the knowledge graph |
-| `pubmed_fetch_fulltext` | PMC full text (JATS → sectioned body; **page through** long papers with `offset`/`maxCharacters`) | 40-page papers without blowing the context window |
-| `pubmed_fetch_pdf_oa` | **Open-access PDF discovery**: a **single** DOI/PMID/PMCID or a **batch** (`pmids[]`/`dois[]`/`pmcids[]`, ≤10) → aggregates **Unpaywall + Europe PMC + OpenAlex** into one de-duplicated, ranked OA link list (direct PDFs first, with hostType / version / license / OA status); `download:true` **saves the PDFs locally** (defaults to `~/.dsh/dsh-pubmed-pdfs/` — the plugin cannot know your session workspace, the AGENT does; pass `outDir` explicitly to place PDFs next to the project; bytes only, never parsed; a publisher interstitial auto-advances to the next candidate link) | You want an OA PDF, or want it on disk to read yourself — the batch form turns a search result list into a download list in one call |
-| `pubmed_europepmc_fetch` | Complete Europe PMC record by source+id (untruncated abstract) | Preprints / patents / non-PubMed records |
+**You say**: "cite this in APA and BibTeX", "what PMID does this DOI correspond to?", "this reference has
+no ID — find it"
 
-### 📝 Citations & IDs
+**The agent**: five citation formats in one step; DOI/PMID/PMCID conversion; partial citation
+(journal/year/volume/pages/author) → PMID lookup; MeSH vocabulary and spell-check.
 
-| Tool | What it does | When to use |
-|---|---|---|
-| `pubmed_format_citations` | APA 7 / MLA 9 / BibTeX / RIS / Vancouver citations | Manuscript citations, journal formats |
-| `pubmed_convert_ids` | DOI / PMID / PMCID conversion | You hold a DOI and need PMID/PMCID |
-| `pubmed_lookup_citation` | Partial citation (journal / year / volume / pages / author) → PMID (ECitMatch) | A reference is missing its ID, or you want to trace a citation |
-| `pubmed_lookup_mesh` | MeSH vocabulary (tree numbers / scope notes / entry terms) | Confirm canonical subject terms, expand synonyms |
-| `pubmed_spell_check` | Query spelling correction (ESpell) | Correct your query before searching |
-
-### 🧬 PubTator3 concept layer (semantics / relations)
-
-| Tool | What it does | When to use |
-|---|---|---|
-| `pubmed_pubtator_entity_id` | Free-text bioconcept → canonical @concept ID (autocomplete) | Normalize "doxorubicin" to `@CHEMICAL_Doxorubicin` before searching |
-| `pubmed_pubtator_relations` | Curated relations between concepts (treat/cause/inhibit/..., publication-count evidence; `evidence:true` attaches supporting PMIDs) | "What is the relation between X and Y?", relation-skeleton scans |
-| `pubmed_pubtator_annotate` | Entity annotation (Gene/Chemical/Disease/Mutation/CellLine/Species, concept IDs; PMIDs or PMCIDs, auto-batches >100) | Dissect the entities in a paper |
-
-### 🕸️ Knowledge graph
-
-| Tool | What it does | When to use |
-|---|---|---|
-| `pubmed_graph_add` | **Incrementally** merge a round of articles into the session graph; `dryRun:true` previews without mutating | Manual feeding, or previewing what would be added |
-| `pubmed_graph_get` | Get session / user graph (JSON, or NPG-palette mermaid card) | Visualize and take stock of accumulated knowledge |
-| `pubmed_graph_commit` | **Explicitly** merge the session graph into the persistent user graph (not automatic) | Close out a research round as a long-term asset |
-| `pubmed_graph_reset` | Clear the session (or user) graph | Start over on a new topic |
-
-### 🌐 Semantic Scholar (citations / recommendations / match)
-
-| Tool | What it does | When to use |
-|---|---|---|
-| `pubmed_get_s2_detail` | One paper's detail (citation / reference counts, OA, all IDs) | Attach a citation count to a known paper |
-| `pubmed_get_s2_citations` | Papers **citing** the given paper | Trace a paper's downstream impact |
-| `pubmed_get_s2_recommendations` | "Papers others read alongside this one" recommendations | Find more like a good paper |
-| `pubmed_match_paper_by_title` | Exact title match → IDs / citation count / metadata | You hold the title and want to locate the paper |
+**You get**: paste-ready citations and accurate paper IDs.
 
 ---
 
-## Real-world scenario scripts
+## Real-world scenario chains
 
-### Scenario A: Writing a review — pull the full evidence chain for "drug X treats disease Y"
+### Scenario 1: A full research sweep (real case: CLDN5 × insomnia)
 
-```
-1. pubmed_pubtator_entity_id({ query: 'metformin', concept: 'chemical' })   # text → @CHEMICAL_Metformin
-2. pubmed_pubtator_relations({ e1: '@CHEMICAL_Metformin', e2: 'disease', evidence: true })
-     # relation skeleton: treat(8423)→T2DM / treat(2275)→Neoplasms / ..., each with supporting PMIDs
-3. pubmed_pubtator_search({ relationType: 'treat', e1: '@CHEMICAL_Metformin', e2: 'DISEASE' })
-     # relevant papers ranked + year/journal facets
-4. pubmed_fetch_articles({ pmids: [...] })   # read the candidates; AUTO_GRAPH auto-merges
-5. pubmed_graph_get({ scope: 'session', format: 'mermaid' })   # visualize the evidence chain
-```
-
-### Scenario B: Drug repurposing / mechanism-hypothesis scanning
+> An actual execution record from this plugin's live testing.
 
 ```
-# full spectrum of relations from one gene to all diseases
-pubmed_pubtator_relations({ e1: '@GENE_TP53', e2: 'disease' })
-# single-digit associations = a potentially overlooked direction → drill into evidence
-pubmed_pubtator_search({ query: '@GENE_TP53 AND @DISEASE_X' })
+You: "Survey research linking CLDN5, ARRB2, NPRL2 to insomnia"
+
+① agent normalizes entities → ② semantic search finds:
+   ⭐ PMID 37928369 (2023) first pilot clinical study of serum Claudin-5/ZO-1
+      in insomnia patients — ZO-1 significantly elevated, correlated with
+      insomnia severity (direct evidence!)
+
+You: "which ones are freely downloadable?"
+③ search results tagged 🟢OA → batch OA link lookup → 3 of 4 papers open access
+
+You: "download them"
+④ PDFs land on disk (PMID37928369.pdf, 3.4MB ✓)
+⑤ the closed one continues as PMC structured text
 ```
 
-### Scenario C: Novelty check for a research idea
+**Four sentences from you, start to finish.**
+
+### Scenario 2: Drug repurposing / mechanism scanning
 
 ```
-# co-occurrence volume of two concepts: single-digit hits ≈ possibly an open direction
-pubmed_pubtator_search({ query: '@DISEASE_COVID_19 AND @GENE_PON1' })
-# cross-platform verification
-pubmed_search_papers({ query: 'COVID-19 AND PON1' })
+"What diseases is TP53 related to?" → relation skeleton → "which associations are niche?"
+→ single-digit hits → "find evidence for those" → semantic drill-down → graph record
 ```
 
-### Scenario D: Systematic literature management — accumulate, visualize, persist
+### Scenario 3: Novelty check for a research idea
 
 ```
-pubmed_fetch_articles({ pmids: [...] })        # each round auto-merges
-# ... more search rounds keep merging (isolated per session) ...
-pubmed_graph_get({ scope: 'session', format: 'mermaid', maxKeywords: 15 })   # stage check-in
-pubmed_graph_commit({ confirm: true })         # happy → persist to your personal graph (cross-session)
-pubmed_graph_get({ scope: 'user' })            # pick it up next time
-```
-
-### Scenario F: Find an open-access PDF (and download it to read yourself)
-
-```
-# 1) search: results are already tagged with open access (🟢OA, zero extra requests)
-pubmed_search_papers({ query: 'gut microbiome metabolomics' })
-#   → 15 hits, 9 marked 🟢OA with an oaUrl (OpenAlex/EPMC return it for free)
-#   the footer tells you to hand those DOIs/PMIDs to pubmed_fetch_pdf_oa
-
-# 2) batch link lookup (ONE call, up to 10 ids) — the search → download-list path
-pubmed_fetch_pdf_oa({ pmids: ['34262212', '31341288', '40495162'] })
-#   → OA PDF lookup — 3 id(s): 3 open access, 3 with a direct PDF link
-#     ✅ PMID 34262212 → https://europepmc.org/articles/PMC8939302?pdf=render
-#     each link carries hostType / version / license
-
-# 3) a single id also works (returns every candidate link)
-pubmed_fetch_pdf_oa({ doi: '10.1038/nature12373' })
-#   → ✅ Open access (bronze) — 9 links (publisher PDF / arXiv PDF / EPMC render / repository …)
-
-# 4) once you know which you want, batch-download (defaults to ~/.dsh/dsh-pubmed-pdfs/;
-#    the agent knows the session workspace, so it passes outDir explicitly for project files;
-#    filenames keyed by PMID/DOI so they stay identifiable)
-pubmed_fetch_pdf_oa({ pmids: ['34262212', '31341288'], download: true, outDir: '<workspace>/dsh-pubmed-pdfs' })
-#   → ✓ PMID31341288.pdf (1262KB)
-#     a blocked publisher link auto-advances; if all are blocked the error is actionable
-```
-
-> This tool **only locates and downloads** the PDF (it never parses it); for structured PMC full text
-> (sectioned JATS) use `pubmed_fetch_fulltext`. The `isOpenAccess` / `oaUrl` fields on search results
-> (**B**) tell you which hits to feed to `fetch_pdf_oa`, whose batch form (**A**) takes them in one call.
-
----
-
-### Scenario E: Precise citations & ID management
-
-```
-# partial citation lookup: only journal/year/volume/pages/author at hand
-pubmed_lookup_citation({ citations: [{ journal: 'Nucleic Acids Res', year: '2013', volume: '41', firstPage: 'D36', authorName: 'Benson' }] })
-# citation formats: APA / BibTeX in one step
-pubmed_format_citations({ pmids: ['23193287'], styles: ['apa', 'bibtex'] })
-# citation count + OA PDF: gauge a paper's weight
-pubmed_get_s2_detail({ paperId: 'PMID:23193287' })
+"Any papers linking these two concepts?" → single-digit boolean hits = possibly an open direction
+→ "cross-check on both platforms" → unified search dedup → a defensible conclusion
 ```
 
 ---
@@ -296,8 +185,7 @@ pubmed_get_s2_detail({ paperId: 'PMID:23193287' })
 ## Configuration
 
 The bundle runs with **zero configuration**. Optional settings are best supplied through the profile
-patch row `config` (more reliable than environment variables, which may not reach the bundle depending
-on how DSH is launched):
+patch row `config` (more reliable than environment variables):
 
 ```yaml
 # Your profile file, e.g. C:\Users\<you>\.dsh\profiles\<profile>\cordis.patch.yml
@@ -305,61 +193,68 @@ on how DSH is launched):
 - id: pubmed
   config:
     NCBI_API_KEY: '<optional: NCBI API key>'
-    # AUTO_GRAPH: false   # default true: fetch_articles auto-merges into the session graph
-    # PUBTATOR: false     # default true: graph concept layer (PubTator concepts + curated relations)
-    # S2_ENABLED: false   # default true: the 5 Semantic Scholar tools
-    # S2_API_KEY: '<optional: free S2 key>'
-    # EUTILS_BASE_URL: 'https://your-reverse-proxy/entrez/eutils'   # optional: self-hosted proxy
+    # AUTO_GRAPH: false    # default true: retrieved papers auto-join the graph
+    # PUBTATOR: false      # default true: entity concept layer
+    # S2_ENABLED: false    # default true: Semantic Scholar tools
+    # UNPAYWALL_EMAIL: '<optional: Unpaywall contact email>'
+    # PDF_DIR: 'D:/papers' # optional: PDF download dir (default ~/.dsh/dsh-pubmed-pdfs/)
 ```
 
 | Setting | Default | Effect |
 |---|---|---|
-| `NCBI_API_KEY` | none | NCBI rate limit: 10 req/s (without key ≈3 req/s) |
-| `NCBI_ADMIN_EMAIL` | built-in noreply | NCBI compliance contact email |
-| `AUTO_GRAPH` | `true` | `fetch_articles` auto-merges into the session graph |
-| `PUBTATOR` | `true` | Graph concept layer (off = heuristic keywords/relations only) |
-| `PUBTATOR_EDGE_EVIDENCE` | `true` | Curated relation edges carry supporting PMIDs |
-| `PUBTATOR_RELATION_PROBE` | `3` (cap 6) | Concepts probed for relations per article |
-| `PUBTATOR_RELATION_PROBE_ARTICLES` | `8` (cap 50) | Articles probed per graph merge |
-| `EUROPEPMC_ENABLED` | `true` | The two Europe PMC tools |
-| `S2_ENABLED` | `true` | The 5 Semantic Scholar tools |
-| `S2_API_KEY` | none | Free S2 key: 1 req/s (without key: shared 100 req/5 min) |
-| `UNPAYWALL_EMAIL` | built-in noreply address | Contact email `pubmed_fetch_pdf_oa` sends to Unpaywall (**must be a real address** — placeholders get HTTP 422); the built-in address is live-verified working |
-| `DSH_PUBMED_PDF_DIR` | `~/.dsh/dsh-pubmed-pdfs/` | PDF download directory (env var); override per call with `outDir` (an agent that knows the session workspace can pass `<workspace>/dsh-pubmed-pdfs/` explicitly) |
-| `HEURISTIC_RELATIONS` | `true` | Heuristic relation layer ("X regulates Y" stem extraction); `false` gives a **pure curated graph** (PubTator relations only) |
-| `RELATION_ENDPOINT_REQUIRE_KEYWORD` | `true` | Relation edges require both endpoints to be article keywords (**semantic gate** against syntax-fragment debris) |
-| `EUTILS_BASE_URL` / `PUBTATOR_BASE_URL` / `EPMC_BASE_URL` | official endpoints | Self-hosted reverse-proxy endpoints to ride out regional connectivity windows |
-| `SKILL_DOC` | `true` | Auto-register the agent routing skill doc at activation |
+| `NCBI_API_KEY` | none | NCBI rate limit (10 req/s) |
+| `AUTO_GRAPH` | `true` | Retrieved papers auto-join the knowledge graph |
+| `PUBTATOR` | `true` | Entity concept layer (PubTator concepts + curated relations) |
+| `PUBTATOR_EDGE_EVIDENCE` | `true` | Relation edges carry supporting PMIDs |
+| `PUBTATOR_RELATION_PROBE` / `_ARTICLES` | 3 / 8 | Relation probing budget |
+| `EUROPEPMC_ENABLED` / `S2_ENABLED` | `true` | Module switches |
+| `S2_API_KEY` | none | Semantic Scholar free key: 1 req/s (without: shared 100 req/5 min) |
+| `UNPAYWALL_EMAIL` | built-in address | Unpaywall contact email (must be a real address) |
+| `PDF_DIR` / `DSH_PUBMED_PDF_DIR` | `~/.dsh/dsh-pubmed-pdfs/` | PDF download directory |
+| `EUTILS_BASE_URL` / `PUBTATOR_BASE_URL` / `EPMC_BASE_URL` | official endpoints | Self-hosted reverse-proxy endpoints |
+| `SKILL_DOC` | `true` | Auto-register the agent routing skill |
+| `RELATION_ENDPOINT_REQUIRE_KEYWORD` | `true` | Graph relation-edge semantic gate |
+| `HEURISTIC_RELATIONS` | `true` | Heuristic relation layer (false = pure curated graph) |
 
-**Built-in rate limiting**: NCBI E-utilities runs on a global queue (~120 ms with key / ~350 ms without),
-PubTator3 on a dedicated ~350 ms queue (official 3 req/s, independent of the API key), Semantic Scholar on
-a dedicated queue (~3 s without key / ~1.1 s with key). Parallel calls are serialized automatically — no 429s.
+> Rate limiting, retries and OA signature validation are built in — nothing to configure.
 
 ---
 
 ## No-proxy networks (mainland-China direct)
 
-Free direct connectivity is this plugin's identity. From v0.3.5 it stays usable **without a proxy**:
-
-- **Auto-retry**: network-classified failures retry with exponential backoff (covering NCBI's "blackhole
-  windows"); HTTP 4xx/5xx are real answers and never retried;
-- **Europe PMC fallback chain**: when NCBI stays unreachable, `search_articles` / `convert_ids` /
-  `find_related(cited_by/references)` switch to Europe PMC (its MED source mirrors PubMed), marked
-  `[via europepmc fallback]`;
-- **Actionable errors**: distinguishes "your local proxy is down" from "host unreachable" — no more bare
-  `fetch failed`;
-- **Self-hosted reverse proxy**: for maximum stability, point `*_BASE_URL` at your own endpoint
-  (implemented in v0.4.0).
+Free direct connectivity is this plugin's identity. Network-classified failures retry with exponential
+backoff; when NCBI is unreachable, searches automatically fall back to Europe PMC (its MED source mirrors
+PubMed); errors distinguish "your local proxy is down" from "host unreachable". For maximum stability,
+point `*_BASE_URL` at your own reverse proxy.
 
 ---
 
-## Agent routing skill (auto-registered)
+## For agents
 
-The bundle ships `skills/dsh-pubmed/SKILL.md`: a **25-tool routing guide** for agents (entry point by user
-phrasing, the graph-chaining workflow, the four-way search boundary, rate-limit notes). **At plugin
-activation it self-registers into `~/.dsh/skills/dsh-pubmed/`** (a scanned DSH skill root) — clean
-installs need zero manual copying; content auto-updates on upgrade (idempotent). Disable with
-`SKILL_DOC:false`.
+The bundle ships `skills/dsh-pubmed/SKILL.md` — **auto-registered at activation** into
+`~/.dsh/skills/dsh-pubmed/` (a scanned DSH skill root). New sessions read it automatically: full routing
+rules for the 26 tools, module-chaining workflows, the OA download workflow, and the pitfalls list.
+
+**You never need to memorize a tool name** — describe the need in plain language. If your agent wants
+the calling details, point it at the SKILL or the tool descriptions.
+
+---
+
+## Appendix: the 26 tools at a glance
+
+> A complete reference list. Day-to-day you need none of this — the agent routes automatically.
+
+**Search**: `pubmed_search_papers` (cross-source unified ⭐) · `pubmed_search_articles` (full PubMed syntax, with abstracts) · `pubmed_europepmc_search` (preprints/patents) · `pubmed_pubtator_search` (semantic/relation) · `pubmed_search_s2` (all fields) · `pubmed_find_related` (similar/citing/references)
+
+**Full text & metadata**: `pubmed_fetch_articles` (structured articles + auto-graph) · `pubmed_fetch_fulltext` (PMC sectioned text, paging) · `pubmed_fetch_pdf_oa` (OA PDF discovery + download) · `pubmed_europepmc_fetch` (full EPM record)
+
+**Citations & IDs**: `pubmed_format_citations` (APA/MLA/BibTeX/RIS/Vancouver) · `pubmed_convert_ids` (DOI/PMID/PMCID) · `pubmed_lookup_citation` (partial citation→PMID) · `pubmed_lookup_mesh` (MeSH vocabulary) · `pubmed_spell_check` (spelling)
+
+**PubTator3 concept layer**: `pubmed_pubtator_entity_id` (text→concept ID) · `pubmed_pubtator_relations` (curated relations + evidence) · `pubmed_pubtator_annotate` (entity annotation)
+
+**Knowledge graph**: `pubmed_graph_add` (incremental merge) · `pubmed_graph_get` (JSON/mermaid) · `pubmed_graph_commit` (persist) · `pubmed_graph_reset` (clear)
+
+**Semantic Scholar**: `pubmed_get_s2_detail` (citation counts) · `pubmed_get_s2_citations` (citing papers) · `pubmed_get_s2_recommendations` (recommendations) · `pubmed_match_paper_by_title` (title match)
 
 ---
 
@@ -404,19 +299,11 @@ dsh plugin --profile web add dsh-pubmed@latest
 
 ### Update
 
-`dsh plugin` is a thin pnpm forwarder — `update` passes straight through to pnpm's update, and on success
-the bundle layer is re-reconciled against the new version's `dsh.bundle` declaration (a version that
-gains or drops the declaration is activated/removed automatically — no manual patch edits needed).
-
 ```bash
-# Update to the latest version
-dsh plugin --profile web update dsh-pubmed@latest
-# Update to a specific version (e.g. 0.4.0)
-dsh plugin --profile web update dsh-pubmed@0.4.0
+dsh plugin --profile web update dsh-pubmed@latest     # or @0.4.2 for a specific version
 ```
 
-> **Restart DSH after updating.** `add dsh-pubmed@latest` also works as an upgrade path (when already
-> installed, pnpm add @latest bumps to the newest).
+**Restart DSH after updating.**
 
 ### Uninstall
 
@@ -441,33 +328,33 @@ dsh plugin --profile web update dsh-pubmed@0.4.0
 
 ## Version history
 
-- **v0.4.2** (in development) — **OA PDF discovery & download + graph denoising**: new 26th tool `pubmed_fetch_pdf_oa` — for a **single or batch** (≤10) DOI/PMID/PMCID it aggregates **Unpaywall + Europe PMC + OpenAlex** into one de-duplicated, ranked OA link list (direct PDFs first, with hostType / version / license / OA status); `download:true` saves the PDFs to `~/.dsh/dsh-pubmed-pdfs/` (filenames keyed by PMID/DOI; bytes only, never parsed; the agent knows the session workspace and can place PDFs in the project folder via `outDir`); **PDF signature validation** (a publisher HTML interstitial is never mistaken for a PDF — the chain advances to the next candidate link); **unified search results now carry `isOpenAccess` / `oaUrl` / `oaStatus`** (zero extra requests) so an agent can hand its OA hits straight to `fetch_pdf_oa`; **graph denoising** — strict relation-span cleaning + endpoint ∈ article keywords semantic gate (`RELATION_ENDPOINT_REQUIRE_KEYWORD`) + mermaid no longer pulls in count-0 fragment endpoints + `HEURISTIC_RELATIONS:false` pure-curated switch; new `UNPAYWALL_EMAIL` setting.
-- **v0.4.1** — **Unified-search upgrade**: `pubmed_search_papers` now defaults to three sources (PubMed + Europe PMC + **OpenAlex** — fast, key-free, all-field, citation counts); `sources` accepts `'s2'` (opt-in Semantic Scholar) and `'all'` (four platforms); new `sort` (relevance/citations/year) and a `year` cross-source filter (pushed server-side per source — fixes the post-hoc filter returning 0 results); agent-facing routing completed (`search_articles`/`europepmc_search` now point at the unified search).
-- **v0.4.0** — **Ecosystem completion + configurable reverse proxy**: `pubmed_search_papers`
-  cross-source unified search (deduped & merged, `perSource` report); 5 Semantic Scholar tools (citation
-  counts / recommendations / title match / all-field); `fetch_fulltext` paging slices; configurable
-  `EUTILS_BASE_URL` / `PUBTATOR_BASE_URL` / `EPMC_BASE_URL`; automatic npmmirror sync after publish
-  (Chinese users get the new version within a minute).
-- **v0.3.9** — Removed deprecated `pubmed_extract_keywords` (19 tools); README/SKILL/cordis cleanup.
-- **v0.3.8** — P4 batch 2: Europe PMC network retry layer; atomic user-graph write (crash-safe); per-session
-  graph write serialization; @-prefix auto-normalization; SKILL expansion; npm scripts + CI test gate.
-- **v0.3.7** — P0 fix: large-scale graph building no longer times out (mergeGraph batch-prefetch cuts 200
-  articles from 200+ PubTator calls to 2; probe/evidence budgets; 150 s enrichment deadline; httpGet
-  timeouts actually enforced).
-- **v0.3.6** — Skill doc self-registration (auto-writes to `~/.dsh/skills/` at activation, idempotent).
-- **v0.3.5** — No-proxy resilience: network-classified retry + Europe PMC fallback chain + actionable errors.
-- **v0.3.4** — Display parity (relation evidence lines / evidence-backed edge summary / annotate batch info);
-  500-article graph stress test at 70 ms.
-- **v0.3.3** — Relation evidence lookup (`evidence:true` → supporting PMIDs on edges); annotate auto-batching +
-  unified session cache; type-prioritized probing; fixed self-loops / placeholder IDs / mermaid classDef;
-  `graph_add({dryRun})` preview.
-- **v0.3.2** — annotate accepts PMCID; routing statements in 7 tool descriptions; bundled SKILL routing skill.
-- **v0.3.1** — Live acceptance; `pubtator_search` `query` made optional (convenience params usable).
-- **v0.3.0** — 20th tool `pubmed_pubtator_search`: semantic / boolean / relation-form search + facets.
-- **v0.2.2** — Dedicated 350 ms PubTator rate-limit queue; relation probing filters before capping.
-- **v0.2.1** — PubTator3 concept layer (annotate / entity_id / relations) + graph concept nodes.
-- **v0.2.0** — Personal literature knowledge-graph engine: session/user dual graphs, incremental merging,
-  NPG-palette mermaid, AUTO_GRAPH, NLP keywords & relation edges.
+- **v0.4.2** (in development) — **OA PDF discovery & download + graph denoising**: new 26th tool
+  `pubmed_fetch_pdf_oa` — for a **single or batch** (≤10) DOI/PMID/PMCID it aggregates **Unpaywall +
+  Europe PMC + OpenAlex** into one de-duplicated, ranked OA link list; `download:true` saves the PDFs
+  locally (filenames keyed by PMID/DOI; bytes only, never parsed); **PDF signature validation** (a
+  publisher HTML interstitial auto-advances the chain); **unified search results now carry OA flags**
+  (zero extra requests); **graph denoising** (semantic gate + mermaid trimming + pure-curated switch);
+  new `UNPAYWALL_EMAIL` setting.
+- **v0.4.1** — **Unified-search upgrade**: `pubmed_search_papers` defaults to three sources (PubMed +
+  Europe PMC + **OpenAlex**); `sources` accepts `'s2'`/`'all'`; `sort` and a `year` cross-source filter
+  (pushed server-side); agent-facing routing completed.
+- **v0.4.0** — **Ecosystem completion + configurable reverse proxy**: cross-source unified search; five
+  Semantic Scholar tools; `fetch_fulltext` paging slices; BASE_URL configuration; automatic npmmirror
+  sync after publish.
+- **v0.3.9** — Removed deprecated `pubmed_extract_keywords`.
+- **v0.3.8** — Europe PMC network retry; atomic + serialized graph writes; @-prefix normalization; SKILL
+  expansion; npm scripts + CI test gate.
+- **v0.3.7** — Large-scale graph building no longer times out (batch prefetch + budgets + per-tool timeouts).
+- **v0.3.6** — Skill doc self-registration.
+- **v0.3.5** — No-proxy resilience (retry + EPMC fallback chain + actionable errors).
+- **v0.3.4** — Display parity; 500-article graph stress test at 70 ms.
+- **v0.3.3** — Relation evidence lookup; annotate batching + caching; `graph_add({dryRun})` preview.
+- **v0.3.2** — annotate accepts PMCID; bundled SKILL routing skill.
+- **v0.3.1** — Live acceptance; `pubtator_search` query optional.
+- **v0.3.0** — `pubmed_pubtator_search` semantic/relation search.
+- **v0.2.2** — Dedicated PubTator rate-limit queue; probe filters before capping.
+- **v0.2.1** — PubTator3 concept layer + graph concept nodes.
+- **v0.2.0** — Personal literature knowledge-graph engine.
 - **v0.1.x** — Initial release: 11 PubMed tools ported from
   [`@cyanheads/pubmed-mcp-server`](https://github.com/cyanheads/pubmed-mcp-server).
 
@@ -494,12 +381,11 @@ Apache-2.0.
 - **Origin**: initially ported from [`@cyanheads/pubmed-mcp-server`](https://github.com/cyanheads/pubmed-mcp-server)
   (Apache-2.0, by Casey Hand) — the core PubMed capabilities (search, article metadata, full text,
   citations, MeSH, ID conversion) originate from that project.
-- **This plugin's own extensions** (not present upstream): the personal literature knowledge-graph engine
-  (session/user dual graphs, incremental merging), the PubTator3 concept layer (typed entity nodes with
-  authoritative concept IDs + curated relation edges), heuristic NLP (noun-phrase keywords + stem-based
-  relation extraction), NPG-palette mermaid visualization, cross-source unified search, Semantic Scholar
-  direct integration, proxy-network fallback, and the config-driven primary/fallback dual-strategy design
-  are all original to this plugin.
+- **This plugin's own extensions** (not present upstream): the personal literature knowledge-graph engine,
+  the PubTator3 concept layer, heuristic NLP, NPG-palette mermaid visualization, cross-source unified
+  search (with OpenAlex), Semantic Scholar direct integration, OA full-text PDF discovery & download,
+  no-proxy resilience, and the config-driven primary/fallback dual-strategy design are all original to
+  this plugin.
 
 > This plugin is therefore no longer a plain "port": the PubMed retrieval layer credits the upstream
-> project, while the knowledge-graph and concept layers are independent extensions.
+> project, while the knowledge-graph, concept and unified-search layers are independent extensions.
