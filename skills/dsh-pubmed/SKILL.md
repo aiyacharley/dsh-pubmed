@@ -1,9 +1,9 @@
 ---
 name: dsh-pubmed
-description: Routing guide for the dsh-pubmed plugin's 25 PubMed / Europe PMC / PubTator3 / Semantic Scholar tools. Use when a task involves biomedical literature — searching articles, resolving bioconcepts (genes/drugs/diseases/variants), finding drug-disease or gene-disease relations with evidence, cross-source unified search, citation counts / paper recommendations / title matching (Semantic Scholar), building or expanding the personal literature knowledge graph, fetching full text, or formatting citations. Tells the agent WHICH of the 25 tools to call for each phrasing and in what order.
+description: Routing guide for the dsh-pubmed plugin's 26 PubMed / Europe PMC / PubTator3 / Semantic Scholar tools. Use when a task involves biomedical literature — searching articles, resolving bioconcepts (genes/drugs/diseases/variants), finding drug-disease or gene-disease relations with evidence, cross-source unified search, citation counts / paper recommendations / title matching (Semantic Scholar), open-access PDF discovery and download, building or expanding the personal literature knowledge graph, fetching full text, or formatting citations. Tells the agent WHICH of the 26 tools to call for each phrasing and in what order.
 ---
 
-# dsh-pubmed 工具路由指南（25 个工具）
+# dsh-pubmed 工具路由指南（26 个工具）
 
 ## 路由口诀（按用户话术选入口）
 
@@ -16,6 +16,7 @@ description: Routing guide for the dsh-pubmed plugin's 25 PubMed / Europe PMC / 
 | PubMed **不够广**（预印本/专利/非期刊） | `pubmed_europepmc_search` → `pubmed_europepmc_fetch` | MED/PMC/PPR/PAT/AGR 五源 |
 | 要**被引数 / 论文推荐 / 标题→论文精确匹配**，或检索**全领域**（不限生物医学） | `pubmed_get_s2_detail` / `pubmed_get_s2_citations` / `pubmed_get_s2_recommendations` / `pubmed_match_paper_by_title` / `pubmed_search_s2` | Semantic Scholar 免费 Graph API：PubMed 生态缺的被引数据在此补全 |
 | 已知 PMID，要**全文/元数据/标注** | `pubmed_fetch_fulltext` / `pubmed_fetch_articles` / `pubmed_pubtator_annotate` | 各取所需；pmcids 也可直接 annotate |
+| 要**开放获取 PDF**（下载到本地自己读） | `pubmed_fetch_pdf_oa` | 聚合 Unpaywall+EPMC+OpenAlex 给 OA 链接列表；`download:true` 落盘（**只下载不解析**，出版社拦截页会自动换下一个链接）；PMC 全文走 `fetch_fulltext` |
 | 从一篇已知文章**顺藤摸瓜**（相似/被引/参考文献） | `pubmed_find_related` | 引文网络扩张，与概念级扩图互补 |
 | 引用格式（APA/BibTeX/RIS…） | `pubmed_format_citations` | — |
 | DOI/PMID/PMCID 互换、残缺引文定位 | `pubmed_convert_ids` / `pubmed_lookup_citation` | — |
@@ -48,13 +49,14 @@ entity_id（文本→@ID）→ pubtator_search（@ID/关系式→文章）→ fe
 - Semantic Scholar：无 key 100 req/5min（共享 IP，专用 ~3s 队列）；配免费 `S2_API_KEY` 后提速至 1 req/s（~1.1s 队列）。被限流会自动重试。
 - **重试与降级（v0.3.5+）**：网络类失败自动重试（指数退避）+ EBI 降级链；报错会区分"本地代理已挂"与"目标不可达"。
 
-## 25 工具速查（输入 → 输出）
+## 26 工具速查（输入 → 输出）
 
 | 工具 | 输入 | 输出 |
 |---|---|---|
 | `pubmed_search_articles` | query（字段语法）+ 日期/类型过滤 | PMID 列表 + ESummary 摘要 |
 | `pubmed_fetch_articles` | pmids（≤200） | 结构化文章（作者/摘要/MeSH/基金/DOI）|
 | `pubmed_fetch_fulltext` | pmids/pmcids/dois（互斥） | 分节全文（可 offset/maxCharacters 分页续读）|
+| `pubmed_fetch_pdf_oa` | doi / pmid / pmcid（互斥）+ download | OA 链接列表（PDF 直链优先 + license/version/OA 状态）；`download:true` 存 PDF 到本地 |
 | `pubmed_format_citations` | pmids + styles | APA/MLA/BibTeX/RIS/Vancouver |
 | `pubmed_find_related` | pmid + relation | 相似/被引/参考文献列表 |
 | `pubmed_lookup_mesh` | query | MeSH 描述符（树号/范围/入口词）|
@@ -96,6 +98,7 @@ entity_id（文本→@ID）→ pubtator_search（@ID/关系式→文章）→ fe
 | `EPMC_BASE_URL` | EBI 官方 | 同上，Europe PMC 家族 |
 | `S2_ENABLED` | true | Semantic Scholar 五工具开关 |
 | `S2_API_KEY` | 无 | S2 免费 key：1 req/s（否则共享 100 req/5min）|
+| `UNPAYWALL_EMAIL` | 内置 noreply | `fetch_pdf_oa` 的 Unpaywall 联系邮箱（须真实邮箱）|
 
 ## 易错点（务必记住）
 

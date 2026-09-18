@@ -17,7 +17,7 @@
 - [🚀 安装（2 分钟上手）](#-安装2-分钟上手)
 - [为什么需要它](#为什么需要它)
 - [三大亮点](#三大亮点)
-- [25 个工具 · 按任务分组](#25-个工具--按任务分组)
+- [26 个工具 · 按任务分组](#26-个工具--按任务分组)
 - [真实场景剧本](#真实场景剧本)
 - [配置](#配置)
 - [无代理网络（大陆直连）](#无代理网络大陆直连)
@@ -111,7 +111,7 @@ fetch_articles（自动入图）→ 多轮增量累积 → graph_get({format:'me
 
 ---
 
-## 25 个工具 · 按任务分组
+## 26 个工具 · 按任务分组
 
 > 分组的逻辑：**先想你要做什么，再选这一组里的工具**。工具描述里也内置了互指路由，agent 不会调错。
 
@@ -135,6 +135,7 @@ fetch_articles（自动入图）→ 多轮增量累积 → graph_get({format:'me
 |---|---|---|
 | `pubmed_fetch_articles` | 按 PMID 取结构化文章（作者 / 摘要 / MeSH / 基金 / DOI / PMCID）；`AUTO_GRAPH` 默认开时**自动入图** | 要精读元数据、或给图谱喂数据 |
 | `pubmed_fetch_fulltext` | PMC 全文（JATS → 分节正文；可 `offset`/`maxCharacters` **分页续读**长文） | 40 页论文分页读，不冲爆上下文 |
+| `pubmed_fetch_pdf_oa` | **开放获取 PDF 发现**：给 DOI/PMID/PMCID → 聚合 **Unpaywall + Europe PMC + OpenAlex** 三源的 OA 链接列表（PDF 直链优先，带 hostType / version / license / OA 状态）；`download:true` 可**下载 PDF 到本地**（默认存到**工作区**下的 `dsh-pubmed-pdfs/`，可用 `outDir` 改；仅落盘不解析，出版社拦截页会自动跳到下一个候选链接） | 要 OA 全文 PDF、或想把 PDF 存到本地自己读 |
 | `pubmed_europepmc_fetch` | 按 source+id 取 EPM 完整记录（含未截断摘要） | 预印本 / 专利等非 PubMed 记录 |
 
 ### 📝 引用与 ID
@@ -217,6 +218,27 @@ pubmed_graph_commit({ confirm: true })         # 满意 → 持久化到个人�
 pubmed_graph_get({ scope: 'user' })            # 下次继续时取回
 ```
 
+### 剧本 F：找开放获取全文 PDF（下载到本地自己读）
+
+```
+# ① 先拿链接列表（不给 download 就只查链接，不动磁盘）
+pubmed_fetch_pdf_oa({ doi: '10.1038/nature12373' })
+#   → ✅ Open access (bronze) — 9 个链接：出版社 PDF / arXiv PDF / EPMC render / 机构库 …
+#     每个链接带 hostType（publisher|repository）、version（submitted|accepted|published）、license
+
+# ② 确认要哪份之后，再下载（默认存到 <工作区>/dsh-pubmed-pdfs/）
+pubmed_fetch_pdf_oa({ doi: '10.1038/nature12373', download: true })
+#   → Downloaded → .../dsh-pubmed-pdfs/1304.1068.pdf (2419633 bytes)
+#     出版社链接若被反爬/同意墙挡住，会自动跳到下一个候选（如 arXiv）并说明跳过原因
+
+# ③ 只有 PMID 也行（自动解析 DOI/PMCID）
+pubmed_fetch_pdf_oa({ pmid: '23903754', download: true })
+```
+
+> 该工具**只负责找到并下载** PDF（不解析内容）；PMC 结构化全文（分节 JATS）走 `pubmed_fetch_fulltext`。
+
+---
+
 ### 剧本 E：精确引用与 ID 管理
 
 ```
@@ -260,6 +282,8 @@ bundle 运行时**零配置即可用**。可选配置建议写进 profile 的 pa
 | `EUROPEPMC_ENABLED` | `true` | Europe PMC 双工具开关 |
 | `S2_ENABLED` | `true` | Semantic Scholar 五工具开关 |
 | `S2_API_KEY` | 无 | S2 免费 key：1 req/s（无 key 走共享 100 req/5min）|
+| `UNPAYWALL_EMAIL` | 内置 noreply 地址 | `pubmed_fetch_pdf_oa` 查询 Unpaywall 的联系邮箱（**必须真实邮箱**，占位地址会被 422 拒）；内置地址已实测可用 |
+| `DSH_PUBMED_PDF_DIR` | `<工作区>/dsh-pubmed-pdfs/` | PDF 下载目录（环境变量）；单次调用可用 `outDir` 覆盖 |
 | `EUTILS_BASE_URL` / `PUBTATOR_BASE_URL` / `EPMC_BASE_URL` | 官方端点 | 自建反代端点，扛区域网络波动 |
 | `SKILL_DOC` | `true` | 激活时自动注册 agent 路由技能文档 |
 
@@ -282,7 +306,7 @@ bundle 运行时**零配置即可用**。可选配置建议写进 profile 的 pa
 
 ## Agent 路由技能（自动注册）
 
-随包附带 `skills/dsh-pubmed/SKILL.md`：一份给 agent 看的 **25 工具路由指南**（按话术选入口、建图链路组合流、
+随包附带 `skills/dsh-pubmed/SKILL.md`：一份给 agent 看的 **26 工具路由指南**（按话术选入口、建图链路组合流、
 四类搜索边界、限速常识）。**插件激活时自动写入 `~/.dsh/skills/dsh-pubmed/`**（DSH 扫描的技能 root），
 纯净安装零手工；内容随版本升级自动改写（幂等）。`SKILL_DOC:false` 可关闭。
 
@@ -312,7 +336,7 @@ dsh plugin --profile web add dsh-pubmed@latest
 
 - 会话级（当前会话立即生效，需本机有源码）：
 ````text
-【请帮我安装 dsh-pubmed 插件（25 个工具）】
+【请帮我安装 dsh-pubmed 插件（26 个工具）】
 1) 先定位 dsh-pubmed 包目录（含 lib/pubmed-core.js）；若本机还没有，先 git clone https://github.com/aiyacharley/dsh-pubmed.git。
 2) 读取 lib/dynamic-wrapper.js 作为 cordis_define 的 code.host，替换 <DSH_PUBMED_CORE_PATH> 与 <DSH_PUBMED_DIR> 占位符。
 3) cordis_run 激活（mode=run）。
@@ -361,6 +385,7 @@ dsh plugin --profile web update dsh-pubmed@0.4.0
 
 ## 版本历史
 
+- **v0.4.2**（开发中）— **OA PDF 发现与下载**：新增第 26 个工具 `pubmed_fetch_pdf_oa`——给 DOI/PMID/PMCID 聚合 **Unpaywall + Europe PMC + OpenAlex** 三源，返回去重排序的 OA 链接列表（PDF 直链优先，带 hostType / version / license / OA 状态）；`download:true` 把 PDF 存到**工作区 `dsh-pubmed-pdfs/`**（仅落盘不解析）；**PDF 签名校验**（出版社 HTML 拦截页不会被当成 PDF，自动跳到下一个候选链接）；新增 `UNPAYWALL_EMAIL` 配置。
 - **v0.4.1** — **统一搜索增强**：`pubmed_search_papers` 默认三源（PubMed + Europe PMC + **OpenAlex**——快速、免费、全领域、带被引数）；`sources` 加 `'s2'`（opt-in Semantic Scholar）或 `'all'`（四源）；新增 `sort`（relevance/citations/year）与 `year` 跨源过滤（**下推各源查询**，修复了"过滤后 0 条"的问题）；agent 路由描述补全（`search_articles`/`europepmc_search` 现在指向统一搜索）。
 - **v0.4.0** — **生态补全 + 反代可配**：`pubmed_search_papers` 跨源统一检索（去重合并 + perSource 报告）；Semantic Scholar 五工具（被引数 / 推荐 / 标题匹配 / 全领域）；`fetch_fulltext` 分页切片；`EUTILS_BASE_URL` / `PUBTATOR_BASE_URL` / `EPMC_BASE_URL` 可配；发布后自动同步 npmmirror（国内 1 分钟内可装）。
 - **v0.3.9** — 移除已废弃的 `pubmed_extract_keywords`（19 工具）；README/SKILL/cordis 清理。

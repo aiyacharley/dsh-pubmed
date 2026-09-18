@@ -17,7 +17,7 @@
 - [🚀 Install (2-minute start)](#-install-2-minute-start)
 - [Why you need it](#why-you-need-it)
 - [Three highlights](#three-highlights)
-- [25 tools · grouped by task](#25-tools--grouped-by-task)
+- [26 tools · grouped by task](#26-tools--grouped-by-task)
 - [Real-world scenario scripts](#real-world-scenario-scripts)
 - [Configuration](#configuration)
 - [No-proxy networks (mainland-China direct)](#no-proxy-networks-mainland-china-direct)
@@ -121,7 +121,7 @@ supporting literature, and which directions your review already covers.
 
 ---
 
-## 25 tools · grouped by task
+## 26 tools · grouped by task
 
 > The grouping logic: **decide what you want to do first, then pick the tool from that group**.
 > Tool descriptions also carry cross-references, so the agent will not mis-route.
@@ -147,6 +147,7 @@ supporting literature, and which directions your review already covers.
 |---|---|---|
 | `pubmed_fetch_articles` | Structured articles by PMID (authors / abstract / MeSH / grants / DOI / PMCID); **auto-merges** into the graph with `AUTO_GRAPH` on | Deep metadata, or feeding the knowledge graph |
 | `pubmed_fetch_fulltext` | PMC full text (JATS → sectioned body; **page through** long papers with `offset`/`maxCharacters`) | 40-page papers without blowing the context window |
+| `pubmed_fetch_pdf_oa` | **Open-access PDF discovery**: DOI/PMID/PMCID → aggregates **Unpaywall + Europe PMC + OpenAlex** into one OA link list (direct PDFs first, with hostType / version / license / OA status); `download:true` **saves the PDF locally** (defaults to a `dsh-pubmed-pdfs/` folder in the session workspace, override with `outDir`; bytes only, never parsed; a publisher interstitial auto-advances to the next candidate link) | You want an OA PDF, or want it on disk to read yourself |
 | `pubmed_europepmc_fetch` | Complete Europe PMC record by source+id (untruncated abstract) | Preprints / patents / non-PubMed records |
 
 ### 📝 Citations & IDs
@@ -229,6 +230,28 @@ pubmed_graph_commit({ confirm: true })         # happy → persist to your perso
 pubmed_graph_get({ scope: 'user' })            # pick it up next time
 ```
 
+### Scenario F: Find an open-access PDF (and download it to read yourself)
+
+```
+# 1) link list first — without download:true nothing touches the disk
+pubmed_fetch_pdf_oa({ doi: '10.1038/nature12373' })
+#   → ✅ Open access (bronze) — 9 links: publisher PDF / arXiv PDF / EPMC render / repository …
+#     each with hostType (publisher|repository), version (submitted|accepted|published), license
+
+# 2) once you know which copy you want, download it (defaults to <workspace>/dsh-pubmed-pdfs/)
+pubmed_fetch_pdf_oa({ doi: '10.1038/nature12373', download: true })
+#   → Downloaded → .../dsh-pubmed-pdfs/1304.1068.pdf (2419633 bytes)
+#     a publisher link blocked by a consent wall/bot check auto-advances to the next candidate
+
+# 3) a bare PMID works too (DOI/PMCID resolved automatically)
+pubmed_fetch_pdf_oa({ pmid: '23903754', download: true })
+```
+
+> This tool **only locates and downloads** the PDF (it never parses it); for structured PMC full text
+> (sectioned JATS) use `pubmed_fetch_fulltext`.
+
+---
+
 ### Scenario E: Precise citations & ID management
 
 ```
@@ -273,6 +296,8 @@ on how DSH is launched):
 | `EUROPEPMC_ENABLED` | `true` | The two Europe PMC tools |
 | `S2_ENABLED` | `true` | The 5 Semantic Scholar tools |
 | `S2_API_KEY` | none | Free S2 key: 1 req/s (without key: shared 100 req/5 min) |
+| `UNPAYWALL_EMAIL` | built-in noreply address | Contact email `pubmed_fetch_pdf_oa` sends to Unpaywall (**must be a real address** — placeholders get HTTP 422); the built-in address is live-verified working |
+| `DSH_PUBMED_PDF_DIR` | `<workspace>/dsh-pubmed-pdfs/` | PDF download directory (env var); override per call with `outDir` |
 | `EUTILS_BASE_URL` / `PUBTATOR_BASE_URL` / `EPMC_BASE_URL` | official endpoints | Self-hosted reverse-proxy endpoints to ride out regional connectivity windows |
 | `SKILL_DOC` | `true` | Auto-register the agent routing skill doc at activation |
 
@@ -332,7 +357,7 @@ dsh plugin --profile web add dsh-pubmed@latest
 
 - Session-level (takes effect immediately, local source required):
 ````text
-[Please install the dsh-pubmed plugin (25 tools)]
+[Please install the dsh-pubmed plugin (26 tools)]
 1) Locate the dsh-pubmed package directory (containing lib/pubmed-core.js); if not present locally,
    first run: git clone https://github.com/aiyacharley/dsh-pubmed.git.
 2) Read lib/dynamic-wrapper.js as the code.host for cordis_define, replacing the
@@ -386,6 +411,7 @@ dsh plugin --profile web update dsh-pubmed@0.4.0
 
 ## Version history
 
+- **v0.4.2** (in development) — **OA PDF discovery & download**: new 26th tool `pubmed_fetch_pdf_oa` — for a DOI/PMID/PMCID it aggregates **Unpaywall + Europe PMC + OpenAlex** into one de-duplicated, ranked OA link list (direct PDFs first, with hostType / version / license / OA status); `download:true` saves the PDF into the **workspace `dsh-pubmed-pdfs/`** folder (bytes only, never parsed); **PDF signature validation** (a publisher HTML interstitial is never mistaken for a PDF — the chain advances to the next candidate link); new `UNPAYWALL_EMAIL` setting.
 - **v0.4.1** — **Unified-search upgrade**: `pubmed_search_papers` now defaults to three sources (PubMed + Europe PMC + **OpenAlex** — fast, key-free, all-field, citation counts); `sources` accepts `'s2'` (opt-in Semantic Scholar) and `'all'` (four platforms); new `sort` (relevance/citations/year) and a `year` cross-source filter (pushed server-side per source — fixes the post-hoc filter returning 0 results); agent-facing routing completed (`search_articles`/`europepmc_search` now point at the unified search).
 - **v0.4.0** — **Ecosystem completion + configurable reverse proxy**: `pubmed_search_papers`
   cross-source unified search (deduped & merged, `perSource` report); 5 Semantic Scholar tools (citation
