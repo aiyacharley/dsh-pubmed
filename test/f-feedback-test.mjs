@@ -62,15 +62,30 @@ function makeTools(httpGet, extraDeps) {
   add('F2: valid relation endpoints still present (microbiota/bile acid metabolism)', labels.some((l) => l.includes('microbiota')) || g.session.edges.some((e) => e.kind === 'relation' && e.label === 'regulates'))
 }
 
-// ---- F3: pmcids param receiving a PMID reports an actionable note ----
+// ---- F3: pmcids param receiving a PMID AUTO-CONVERTS and resolves ----
 {
   const { tools } = makeTools((u) => {
     if (u.includes('europepmc') || u.includes('ebi.ac.uk')) return { status: 200, body: JSON.stringify({ resultList: { result: [] } }) } // PMCID unknown
+    if (u.includes('elink.fcgi')) return { status: 200, body: JSON.stringify({ linksets: [{ linksetdbs: [{ linkname: 'pubmed_pmc', links: ['10625320'] }] }] }) } // as PMID it HAS a PMCID
+    if (u.includes('esummary.fcgi')) return { status: 200, body: JSON.stringify({ result: { '37928369': { articleids: [{ idtype: 'doi', value: '10.2147/NSS.S424756' }] } } }) }
     return { status: 200, body: '{}' }
   })
   const r = await tools.pubmed_fetch_pdf_oa.execute({ pmcid: '37928369' }, S('f')) // a bare PMID passed as pmcid
-  add('F3: not silently reported as "no OA copy"', !(r.isOpenAccess === false && r.locationCount === 0 && !r.sourceErrors))
-  add('F3: actionable note suggests passing it via pmids', (r.sourceErrors || []).some((e) => /pass it via pmids/.test(e.note || e.error || '')))
+  add('F3: bare PMID passed as pmcid auto-converts (input resolved)', r.input.pmid === '37928369' && r.input.pmcid === 'PMC10625320')
+  add('F3: conversion note present (treated as pmid)', r.converted != null && r.converted.treated === 'pmid:37928369')
+}
+
+// ---- F3b: genuinely unknown number → actionable note (conversion also failed) ----
+{
+  const { tools } = makeTools((u) => {
+    if (u.includes('europepmc') || u.includes('ebi.ac.uk')) return { status: 200, body: JSON.stringify({ resultList: { result: [] } }) }
+    if (u.includes('elink.fcgi')) return { status: 200, body: JSON.stringify({ linksets: [] }) } // no PMCID either
+    return { status: 200, body: '{}' }
+  })
+  const r = await tools.pubmed_fetch_pdf_oa.execute({ pmcid: '99999999' }, S('f'))
+  if (process.env.DEBUG_F3B) console.log('F3b DEBUG:', JSON.stringify(r, null, 1).slice(0, 800))
+  add('F3b: unresolvable number → actionable note (not a valid PMCID)', (r.sourceErrors || []).some((e) => /valid PMC ID/.test(e.note || e.error || '')))
+  add('F3b: no misleading OA=false', !(r.isOpenAccess === false && r.locationCount === 0 && !r.sourceErrors))
 }
 
 // ---- F6: find_related never returns the source article itself ----
