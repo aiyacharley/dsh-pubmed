@@ -255,13 +255,13 @@ the calling details, point it at the SKILL or the tool descriptions.
 
 **Search**: `pubmed_search_papers` (cross-source unified ⭐) · `pubmed_search_articles` (full PubMed syntax, with abstracts) · `pubmed_europepmc_search` (preprints/patents) · `pubmed_pubtator_search` (semantic/relation) · `pubmed_search_s2` (all fields) · `pubmed_find_related` (similar/citing/references)
 
-**Full text & metadata**: `pubmed_fetch_articles` (structured articles + auto-graph) · `pubmed_fetch_fulltext` (PMC sectioned text, paging) · `pubmed_fetch_pdf_oa` (OA PDF discovery + download) · `pubmed_europepmc_fetch` (full EPM record)
+**Full text & metadata**: `pubmed_fetch_articles` (structured articles + auto-graph) · `pubmed_fetch_fulltext` (two-tier: PMC → Europe PMC, paging) · `pubmed_fetch_pdf_oa` (OA PDF discovery + download) · `pubmed_europepmc_fetch` (full EPM record)
 
 **Citations & IDs**: `pubmed_format_citations` (APA/MLA/BibTeX/RIS/Vancouver) · `pubmed_convert_ids` (DOI/PMID/PMCID) · `pubmed_lookup_citation` (partial citation→PMID) · `pubmed_lookup_mesh` (MeSH vocabulary) · `pubmed_spell_check` (spelling)
 
 **PubTator3 concept layer**: `pubmed_pubtator_entity_id` (text→concept ID) · `pubmed_pubtator_relations` (curated relations + evidence) · `pubmed_pubtator_annotate` (entity annotation)
 
-**Knowledge graph**: `pubmed_graph_add` (incremental merge) · `pubmed_graph_get` (JSON/mermaid) · `pubmed_graph_commit` (persist) · `pubmed_graph_reset` (clear)
+**Knowledge graph**: `pubmed_graph_add` (incremental merge: articles or batch pmids) · `pubmed_graph_get` (JSON/mermaid) · `pubmed_graph_commit` (persist) · `pubmed_graph_reset` (clear)
 
 **Semantic Scholar**: `pubmed_get_s2_detail` (citation counts) · `pubmed_get_s2_citations` (citing papers) · `pubmed_get_s2_recommendations` (recommendations) · `pubmed_match_paper_by_title` (title match)
 
@@ -337,6 +337,11 @@ dsh plugin --profile web update dsh-pubmed@latest     # or @0.4.2 for a specific
 
 ## Version history
 
+- **Unreleased (v0.4.3)** — **Graph & pipeline enhancements**: `graph_add` accepts batch `pmids`
+  (≤200, auto-fetch + enrichment); `fetch_fulltext` upgraded to a two-tier chain (PMC → Europe PMC
+  fullTextXML — EPMC-only OA articles now have body text); **ID resolution cache** (negative results
+  included, zero repeated lookups across the pipeline); batch-tool timeout budgets (120–180s);
+  `fetch_pdf_oa` locations now carry per-source attribution + a Best-PDF line + F3 conversion echo.
 - **v0.4.2** — **OA PDF discovery & download + graph denoising**: new 26th tool
   `pubmed_fetch_pdf_oa` — for a **single or batch** (≤10) DOI/PMID/PMCID it aggregates **Unpaywall +
   Europe PMC + OpenAlex** into one de-duplicated, ranked OA link list; `download:true` saves the PDFs

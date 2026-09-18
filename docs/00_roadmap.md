@@ -10,7 +10,7 @@
 | | |
 |---|---|
 | 当前版本 | v0.4.2（npm latest）· 26 工具 |
-| 下一版本 | v0.4.x：P2 annotate_text（待上游恢复）+ 缓议项按需捞取 |
+| 下一版本 | **v0.4.3（已实现待发布）**：P1 ID 解析缓存 + P2 graph_add pmids 批量形式 + P3 fulltext 两级链/OA loc 工厂（见 §1.7）；P2 annotate_text 仍搁置 |
 | 维护原则 | 免费直连（不引入付费代理）；纯 JS 免构建；离线测试全覆盖；发布全自动 |
 
 ---
@@ -48,6 +48,7 @@
 - 离线测试 18/18 文件全绿（批量/预算/门控/互斥/串行化/原子写/降级链/技能注册/E 项/S2/PDF-OA 44 断言/真机反馈回归 17 断言/压测 500 篇 70ms）
 - 无代理真机复测多轮：20 篇建图 106 概念入图 / 并发 graph_add 串行无交错 / EPM 双通 / @ 归一化
 - **真机使用测试（v0.4.2）**：Cldn5/Arrb2/Nprl2 × 失眠课题全链路（实体归一 → 语义检索 → 批量 OA → PDF 下载签名校验 → PMC 正文精读）；反馈回归锁定 F1/F2/F3/F6
+- **五轮真机回归（v0.4.2 发布后）**：26 工具全量×2 + F2 图谱去噪专项（3 篇实测样本 mermaid 碎片 12→0、红边全 curated）+ PDF 端到端首次验证（Frontiers 2.85MB 落盘 → pdf_scan 13 页双栏）；S2 无 key 限流窗口行为记录（detail 连续超时、同族重试成功）
 - 发布自动化三连验证：push tag → Actions 测试 → Release 挂 tgz → NPM_TOKEN 自动 publish
 
 ### 1.4 生态补全（v0.4.0 已发布）
@@ -77,9 +78,18 @@
 |---|---|---|---|
 | E6 | **`pubmed_fetch_pdf_oa`（第 26 个工具）**：DOI/PMID/PMCID **单个或批量**（≤10）→ 聚合 Unpaywall + Europe PMC fullTextUrlList + OpenAlex，去重排序的 OA 链接列表；`download:true` 存 PDF（只下载不解析）；**PDF 签名校验**（出版社 HTML 拦截页自动跳下一个候选）；默认 `~/.dsh/dsh-pubmed-pdfs/`，agent 传 `outDir` 进工作区；`UNPAYWALL_EMAIL` 配置 | v0.4.2 | ✅ v0.4.2 |
 | E3e | **检索→下载闭环**：统一搜索结果携带 `isOpenAccess`/`oaUrl`/`oaStatus`（OpenAlex/EPMC 免费返回，零额外请求）；`fetch_pdf_oa` 批量形式把 OA 命中一次转成下载列表 | v0.4.2 | ✅ |
-| 图谱去噪 | **五层根因修复**（用户三轮实测定位）：①关系跨度严格门（含任一停用词即弃，修复被同名遮蔽的死代码）②A2 语义门（端点 ∈ 本文关键词，`RELATION_ENDPOINT_REQUIRE_KEYWORD` 开关）③A3 mermaid 不再补入 count=0 端点 ④C `HEURISTIC_RELATIONS:false` 纯 curated 开关。效果：噪音文章 27 节点/6 关系 → 25 节点/2 有效关系，碎片=0 | v0.4.2 | ✅ |
+| 图谱去噪 | **五层根因修复**（用户三轮实测定位）：①关系跨度严格门（含任一停用词即弃，修复被同名遮蔽的死代码）②A2 语义门（端点 ∈ 本文关键词，`RELATION_ENDPOINT_REQUIRE_KEYWORD` 开关）③A3 mermaid 不再补入 count=0 端点 ④C `HEURISTIC_RELATIONS:false` 纯 curated 开关。效果：噪音文章 27 节点/6 关系 → 25 节点/2 有效关系，碎片=0（五轮真机回归确认：3 篇实测样本 mermaid 碎片 12→0） | v0.4.2 | ✅ |
 | 修复 | year 过滤**下推各源查询**（修复事后过滤返回 0 条）；F1 `includeSummaries` 默认值生效；F6 find_related 不再回含源 PMID；F3 pmcid 误传 PMID **自动换算** | v0.4.2 | ✅ |
 | 文档 | README **能力优先重构**（中英）：六大功能模块 + 场景串联替代工具罗列（-26% 行数）；工具清单降为附录 | v0.4.2 | ✅ |
+
+### 1.7 v0.4.2 后增强（已实现，未发布 → 随 v0.4.3）
+
+| 项 | 内容 | 版本 | 状态 |
+|---|---|---|---|
+| P1 | **ID 解析缓存**：pmid↔pmcid↔doi 解析结果插件内缓存（含负结果，防重复解析风暴）；检索→OA→全文→图谱串联链路重复 ID 零网络开销 | v0.4.3 | ✅ 待发布 |
+| P2 | **`graph_add` pmids 批量形式**（≤200，内部自动取文+富集，"把这些加进图谱"一步到位）+ 批量工具超时预算落地（批量 OA/统一搜索/带富集入图 120–180s） | v0.4.3 | ✅ 待发布 |
+| P3 | **fetch_fulltext 两级链**（NCBI PMC → Europe PMC fullTextXML，EPMC-only OA 也有正文）+ OA location 工厂/来源派发（每个候选位置带 unpaywall/europepmc/openalex 标注 + alsoIn，末尾 Best PDF 推荐，F3 换算 `converted` 回显）+ flag 归一化 | v0.4.3 | ✅ 待发布 |
+| docs | SKILL.md 路由更新（pmids 捷径 / 两级链 / ID 缓存 / 批量超时 / 新配置键）；README 中英同步；新建 CHANGELOG | v0.4.3 | ✅ 待发布 |
 
 ---
 
@@ -128,7 +138,7 @@
 | 二.2/二.7 | sessionKeyOf 硬化、lookup_citation key 去重 | 缓议 |
 | 四.3/四.4 | CHANGELOG.md、sessionGraphs 内存上限 | 缓议 |
 | biome lint | 选型已定（父项目同款），未接入 | 缓议 |
-| S2 429 退避上限 | 无 key 共享池重度限流时 429+退避可拖慢调用（实测 60-90s）；对 S2 源限重试次数或缩短退避 | 缓议（v0.4.2 实测新增）|
+| S2 429 退避上限 | 无 key 共享池重度限流时 429+退避可拖慢调用（实测 60-90s）；对 S2 源限重试次数或缩短退避 | 缓议（v0.4.2 实测新增；五轮复测再证：限流窗口内 detail 连续超时而同族工具重试成功）|
 | OpenAlex 独立工具 | OpenAlex 已进统一搜索默认源；是否再出独立工具（含 concepts/OA 字段全量）待评估 | 缓议 |
 | 统一搜索 OA 过滤 | `minCitedBy` / `sourceType`（journal/preprint）等跨源过滤参数 | 缓议 |
 | Web UI 卡片 | 引用卡片/设置卡片（React + tsdown 双构建，架构级）——dsh-ai4scholar 最大差异化，成本最高 | 远期评估 |

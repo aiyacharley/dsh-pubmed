@@ -60,7 +60,7 @@ description: Routing guide for the dsh-pubmed plugin's 26 PubMed / Europe PMC / 
 | `pubmed_search_articles` | query（字段语法）+ 日期/类型过滤 | PMID 列表 + ESummary 摘要 |
 | `pubmed_fetch_articles` | pmids（≤200） | 结构化文章（作者/摘要/MeSH/基金/DOI）|
 | `pubmed_fetch_fulltext` | pmids/pmcids/dois（互斥） | 分节全文（两级链：PMC → Europe PMC fullTextXML；可 offset/maxCharacters 分页续读）|
-| `pubmed_fetch_pdf_oa` | doi/pmid/pmcid 单个 或 pmids[]/dois[]/pmcids[] 批量（≤10）+ download | 每篇的 OA 链接列表（PDF 直链优先 + license/version/OA 状态）；批量返回 `results[]` + 汇总；`download:true` 逐篇存 PDF |
+| `pubmed_fetch_pdf_oa` | doi/pmid/pmcid 单个 或 pmids[]/dois[]/pmcids[] 批量（≤10）+ download | 每篇的 OA 候选位置列表（PDF 直链优先；多源聚合标注 unpaywall/europepmc/openalex + version/license + alsoIn；末尾 Best PDF 推荐；F3 自动换算时回显 `converted`）；批量返回 `results[]` + 汇总；`download:true` 逐篇存 PDF |
 | `pubmed_format_citations` | pmids + styles | APA/MLA/BibTeX/RIS/Vancouver |
 | `pubmed_find_related` | pmid + relation | 相似/被引/参考文献列表 |
 | `pubmed_lookup_mesh` | query | MeSH 描述符（树号/范围/入口词）|
@@ -115,3 +115,4 @@ description: Routing guide for the dsh-pubmed plugin's 26 PubMed / Europe PMC / 
 - **无代理（大陆直连）能力矩阵**：EBI 双工具全功能；PubTator/NCBI 工具随直连窗口波动（自动重试 + search/convert/find_related 有 EBI 降级）；`spell_check`/`lookup_mesh`/`similar` 为 NCBI 独有；可配 `*_BASE_URL` 自建反代兜底。
 - **@实体 ID 链路**：entity_id 输出（如 `@GENE_CD79A`）→ relations/search 输入；漏 @ 会自动补齐。
 - **S2 是"补充"不是"替代"**：生物医学实体/关系问题仍走 PubTator 工具；S2 补被引数、推荐、标题匹配与全领域覆盖，且无 key 时共享限流（大列表请求注意 pace）。
+- **S2 限流窗口内可能整段超时**：无 key 共享池紧张时，`get_s2_detail`/`search_s2`/`match_paper_by_title` 可能在 60s 工具超时窗口内重试不完（实测同窗口内 citations/recommendations 成功）——属环境限流非故障，间隔重试或稍后再试。

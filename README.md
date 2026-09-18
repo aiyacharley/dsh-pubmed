@@ -226,13 +226,13 @@ bundle 运行时**零配置即可用**。可选配置建议写进 profile 的 pa
 
 **检索**：`pubmed_search_papers`（跨源统一检索 ⭐）· `pubmed_search_articles`（PubMed 完整语法，含摘要）· `pubmed_europepmc_search`（预印本/专利）· `pubmed_pubtator_search`（语义/关系检索）· `pubmed_search_s2`（全领域）· `pubmed_find_related`（相似/被引/参考文献）
 
-**全文与元数据**：`pubmed_fetch_articles`（结构化文章 + 自动入图）· `pubmed_fetch_fulltext`（PMC 分节全文，分页）· `pubmed_fetch_pdf_oa`（OA PDF 发现 + 下载）· `pubmed_europepmc_fetch`（EPM 完整记录）
+**全文与元数据**：`pubmed_fetch_articles`（结构化文章 + 自动入图）· `pubmed_fetch_fulltext`（两级链：PMC → Europe PMC，分页）· `pubmed_fetch_pdf_oa`（OA PDF 发现 + 下载）· `pubmed_europepmc_fetch`（EPM 完整记录）
 
 **引用与 ID**：`pubmed_format_citations`（APA/MLA/BibTeX/RIS/Vancouver）· `pubmed_convert_ids`（DOI/PMID/PMCID 互转）· `pubmed_lookup_citation`（残缺引文→PMID）· `pubmed_lookup_mesh`（MeSH 词表）· `pubmed_spell_check`（拼写纠正）
 
 **PubTator3 概念层**：`pubmed_pubtator_entity_id`（文本→概念 ID）· `pubmed_pubtator_relations`（curated 关系 + 证据）· `pubmed_pubtator_annotate`（实体标注）
 
-**知识图谱**：`pubmed_graph_add`（增量入图）· `pubmed_graph_get`（JSON/mermaid）· `pubmed_graph_commit`（持久化）· `pubmed_graph_reset`（清空）
+**知识图谱**：`pubmed_graph_add`（增量入图：articles 或 pmids 批量直入）· `pubmed_graph_get`（JSON/mermaid）· `pubmed_graph_commit`（持久化）· `pubmed_graph_reset`（清空）
 
 **Semantic Scholar**：`pubmed_get_s2_detail`（被引数）· `pubmed_get_s2_citations`（引文列表）· `pubmed_get_s2_recommendations`（推荐）· `pubmed_match_paper_by_title`（标题匹配）
 
@@ -305,6 +305,7 @@ dsh plugin --profile web update dsh-pubmed@latest     # 或 @0.4.2 指定版本
 
 ## 版本历史
 
+- **未发布（v0.4.3）** — **图谱与链路增强**：`graph_add` 支持 `pmids` 批量直入（≤200，自动取文+富集）；`fetch_fulltext` 升级两级链（PMC → Europe PMC fullTextXML，EPMC-only OA 也有正文）；**ID 解析缓存**（含负结果，串联链路零重复解析）；批量工具超时预算（120–180s）；`fetch_pdf_oa` 候选位置带多源来源标注 + Best PDF 推荐 + F3 换算回显。
 - **v0.4.2** — **OA PDF 发现与下载 + 图谱去噪**：新增第 26 个工具 `pubmed_fetch_pdf_oa`——给**单个或批量**（≤10）DOI/PMID/PMCID 聚合 **Unpaywall + Europe PMC + OpenAlex** 三源，返回去重排序的 OA 链接列表；`download:true` 把 PDF 存到本地（文件名用 PMID/DOI，仅落盘不解析）；**PDF 签名校验**（出版社 HTML 拦截页自动跳过）；**统一搜索结果新增 OA 标记**（零额外请求）；**图谱去噪**（语义门 + mermaid 裁剪 + 纯 curated 开关）；新增 `UNPAYWALL_EMAIL` 配置。
 - **v0.4.1** — **统一搜索增强**：`pubmed_search_papers` 默认三源（PubMed + Europe PMC + **OpenAlex**）；`sources` 加 `'s2'`/`'all'`；`sort` 与 `year` 跨源过滤（下推各源查询）；agent 路由描述补全。
 - **v0.4.0** — **生态补全 + 反代可配**：跨源统一检索；Semantic Scholar 五工具；`fetch_fulltext` 分页切片；BASE_URL 可配；发布后自动同步 npmmirror。
