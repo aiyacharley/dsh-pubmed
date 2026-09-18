@@ -32,10 +32,11 @@
 
 ## 🚀 Install (2-minute start)
 
-**Prerequisites**: install [Node.js ≥ 20](https://nodejs.org/), then start the DSH web environment with one command (first run downloads it automatically):
+**Prerequisites**: install [Node.js ≥ 20](https://nodejs.org/), then **globally install the DSH CLI** (recommended — after this the `dsh` command is available everywhere):
 
 ```bash
-npx @deepseek-ai/dsh web
+npm install -g @deepseek-ai/dsh
+dsh web        # start the DSH web environment (or temporarily: npx @deepseek-ai/dsh web)
 ```
 
 Once it's running, install the plugin with one command:

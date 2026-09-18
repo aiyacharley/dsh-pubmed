@@ -32,10 +32,11 @@
 
 ## 🚀 安装（2 分钟上手）
 
-**前置**：先装 [Node.js ≥ 20](https://nodejs.org/)，然后一行命令启动 DSH web 环境（首次会自动下载）：
+**前置**：先装 [Node.js ≥ 20](https://nodejs.org/)，再**全局安装 DSH CLI**（推荐，装完直接用 `dsh` 命令）：
 
 ```bash
-npx @deepseek-ai/dsh web
+npm install -g @deepseek-ai/dsh
+dsh web        # 启动 DSH web 环境（未全局安装也可临时用 npx @deepseek-ai/dsh web）
 ```
 
 启动后，一条命令安装本插件：
