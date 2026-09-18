@@ -147,7 +147,7 @@ supporting literature, and which directions your review already covers.
 |---|---|---|
 | `pubmed_fetch_articles` | Structured articles by PMID (authors / abstract / MeSH / grants / DOI / PMCID); **auto-merges** into the graph with `AUTO_GRAPH` on | Deep metadata, or feeding the knowledge graph |
 | `pubmed_fetch_fulltext` | PMC full text (JATS → sectioned body; **page through** long papers with `offset`/`maxCharacters`) | 40-page papers without blowing the context window |
-| `pubmed_fetch_pdf_oa` | **Open-access PDF discovery**: a **single** DOI/PMID/PMCID or a **batch** (`pmids[]`/`dois[]`/`pmcids[]`, ≤10) → aggregates **Unpaywall + Europe PMC + OpenAlex** into one de-duplicated, ranked OA link list (direct PDFs first, with hostType / version / license / OA status); `download:true` **saves the PDFs locally** (defaults to a `dsh-pubmed-pdfs/` folder in the session workspace, filenames keyed by PMID/DOI; bytes only, never parsed; a publisher interstitial auto-advances to the next candidate link) | You want an OA PDF, or want it on disk to read yourself — the batch form turns a search result list into a download list in one call |
+| `pubmed_fetch_pdf_oa` | **Open-access PDF discovery**: a **single** DOI/PMID/PMCID or a **batch** (`pmids[]`/`dois[]`/`pmcids[]`, ≤10) → aggregates **Unpaywall + Europe PMC + OpenAlex** into one de-duplicated, ranked OA link list (direct PDFs first, with hostType / version / license / OA status); `download:true` **saves the PDFs locally** (defaults to `~/.dsh/dsh-pubmed-pdfs/` — the plugin cannot know your session workspace, the AGENT does; pass `outDir` explicitly to place PDFs next to the project; bytes only, never parsed; a publisher interstitial auto-advances to the next candidate link) | You want an OA PDF, or want it on disk to read yourself — the batch form turns a search result list into a download list in one call |
 | `pubmed_europepmc_fetch` | Complete Europe PMC record by source+id (untruncated abstract) | Preprints / patents / non-PubMed records |
 
 ### 📝 Citations & IDs
@@ -248,9 +248,10 @@ pubmed_fetch_pdf_oa({ pmids: ['34262212', '31341288', '40495162'] })
 pubmed_fetch_pdf_oa({ doi: '10.1038/nature12373' })
 #   → ✅ Open access (bronze) — 9 links (publisher PDF / arXiv PDF / EPMC render / repository …)
 
-# 4) once you know which you want, batch-download (defaults to <workspace>/dsh-pubmed-pdfs/,
+# 4) once you know which you want, batch-download (defaults to ~/.dsh/dsh-pubmed-pdfs/;
+#    the agent knows the session workspace, so it passes outDir explicitly for project files;
 #    filenames keyed by PMID/DOI so they stay identifiable)
-pubmed_fetch_pdf_oa({ pmids: ['34262212', '31341288'], download: true })
+pubmed_fetch_pdf_oa({ pmids: ['34262212', '31341288'], download: true, outDir: '<workspace>/dsh-pubmed-pdfs' })
 #   → ✓ PMID31341288.pdf (1262KB)
 #     a blocked publisher link auto-advances; if all are blocked the error is actionable
 ```
@@ -306,7 +307,7 @@ on how DSH is launched):
 | `S2_ENABLED` | `true` | The 5 Semantic Scholar tools |
 | `S2_API_KEY` | none | Free S2 key: 1 req/s (without key: shared 100 req/5 min) |
 | `UNPAYWALL_EMAIL` | built-in noreply address | Contact email `pubmed_fetch_pdf_oa` sends to Unpaywall (**must be a real address** — placeholders get HTTP 422); the built-in address is live-verified working |
-| `DSH_PUBMED_PDF_DIR` | `<workspace>/dsh-pubmed-pdfs/` | PDF download directory (env var); override per call with `outDir` |
+| `DSH_PUBMED_PDF_DIR` | `~/.dsh/dsh-pubmed-pdfs/` | PDF download directory (env var); override per call with `outDir` (an agent that knows the session workspace can pass `<workspace>/dsh-pubmed-pdfs/` explicitly) |
 | `EUTILS_BASE_URL` / `PUBTATOR_BASE_URL` / `EPMC_BASE_URL` | official endpoints | Self-hosted reverse-proxy endpoints to ride out regional connectivity windows |
 | `SKILL_DOC` | `true` | Auto-register the agent routing skill doc at activation |
 
@@ -420,7 +421,7 @@ dsh plugin --profile web update dsh-pubmed@0.4.0
 
 ## Version history
 
-- **v0.4.2** (in development) — **OA PDF discovery & download**: new 26th tool `pubmed_fetch_pdf_oa` — for a **single or batch** (≤10) DOI/PMID/PMCID it aggregates **Unpaywall + Europe PMC + OpenAlex** into one de-duplicated, ranked OA link list (direct PDFs first, with hostType / version / license / OA status); `download:true` saves the PDFs into the **workspace `dsh-pubmed-pdfs/`** folder (filenames keyed by PMID/DOI; bytes only, never parsed); **PDF signature validation** (a publisher HTML interstitial is never mistaken for a PDF — the chain advances to the next candidate link); **unified search results now carry `isOpenAccess` / `oaUrl` / `oaStatus`** (zero extra requests) so an agent can hand its OA hits straight to `fetch_pdf_oa`; new `UNPAYWALL_EMAIL` setting.
+- **v0.4.2** (in development) — **OA PDF discovery & download**: new 26th tool `pubmed_fetch_pdf_oa` — for a **single or batch** (≤10) DOI/PMID/PMCID it aggregates **Unpaywall + Europe PMC + OpenAlex** into one de-duplicated, ranked OA link list (direct PDFs first, with hostType / version / license / OA status); `download:true` saves the PDFs to `~/.dsh/dsh-pubmed-pdfs/` (filenames keyed by PMID/DOI; bytes only, never parsed; the agent knows the session workspace and can place PDFs in the project folder via `outDir`); **PDF signature validation** (a publisher HTML interstitial is never mistaken for a PDF — the chain advances to the next candidate link); **unified search results now carry `isOpenAccess` / `oaUrl` / `oaStatus`** (zero extra requests) so an agent can hand its OA hits straight to `fetch_pdf_oa`; new `UNPAYWALL_EMAIL` setting.
 - **v0.4.1** — **Unified-search upgrade**: `pubmed_search_papers` now defaults to three sources (PubMed + Europe PMC + **OpenAlex** — fast, key-free, all-field, citation counts); `sources` accepts `'s2'` (opt-in Semantic Scholar) and `'all'` (four platforms); new `sort` (relevance/citations/year) and a `year` cross-source filter (pushed server-side per source — fixes the post-hoc filter returning 0 results); agent-facing routing completed (`search_articles`/`europepmc_search` now point at the unified search).
 - **v0.4.0** — **Ecosystem completion + configurable reverse proxy**: `pubmed_search_papers`
   cross-source unified search (deduped & merged, `perSource` report); 5 Semantic Scholar tools (citation

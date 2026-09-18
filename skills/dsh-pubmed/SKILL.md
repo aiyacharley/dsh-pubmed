@@ -48,7 +48,7 @@ entity_id（文本→@ID）→ pubtator_search（@ID/关系式→文章）→ fe
 - E-utilities：有 API key ≈8 req/s，无 key ≈2.8 req/s，同样已内置队列。
 - Semantic Scholar：无 key 100 req/5min（共享 IP，专用 ~3s 队列）；配免费 `S2_API_KEY` 后提速至 1 req/s（~1.1s 队列）。被限流会自动重试。
 - **重试与降级（v0.3.5+）**：网络类失败自动重试（指数退避）+ EBI 降级链；报错会区分"本地代理已挂"与"目标不可达"。
-- **OA 工作流（v0.4.2+）**：`search_papers` 结果自带 `isOpenAccess`/`oaUrl` 标记 → 把 🟢OA 命中的 PMID/DOI **批量**交给 `pubmed_fetch_pdf_oa`（一次 ≤10 个）→ 拿到 PDF 链接列表 → 确认后 `download:true` 存到 `<工作区>/dsh-pubmed-pdfs/`。PDF 只下载不解析。
+- **OA 工作流（v0.4.2+）**：`search_papers` 结果自带 `isOpenAccess`/`oaUrl` 标记 → 把 🟢OA 命中的 PMID/DOI **批量**交给 `pubmed_fetch_pdf_oa`（一次 ≤10 个）→ 拿到 PDF 链接列表 → 确认后 `download:true` 存盘。**download 时必须显式传 `outDir: '<会话工作区>/dsh-pubmed-pdfs'`**——插件的默认目录是 `~/.dsh/dsh-pubmed-pdfs/`（插件不知道你的会话工作区，**你知道**，就在你的系统提示里）。PDF 只下载不解析。
 
 ## 26 工具速查（输入 → 输出）
 
