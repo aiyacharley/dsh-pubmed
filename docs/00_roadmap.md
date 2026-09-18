@@ -15,7 +15,7 @@
 
 ---
 
-## 1. 已完成（v0.1.0 → v0.4.0）
+## 1. 已完成（v0.1.0 → v0.4.2）
 
 ### 1.1 功能主线（出自 01 分册，P0–P3.9）
 
@@ -41,12 +41,13 @@
 | 批次二 | EPM 调用套 withNetRetry；用户图谱原子写（tmp+rename）；图写按会话串行化；@ 前缀自动归一化；SKILL.md 扩充（速查表/配置表/易错点）；npm scripts + CI 测试门 | v0.3.8 | ✅ |
 | 清理 | 移除已废弃 `pubmed_extract_keywords`（20→19 工具） | v0.3.9 | ✅ |
 | 修复 | CI：npm install 步骤 + 测试门改 continue-on-error（裸 CI 无 node_modules 的教训） | v0.3.8 | ✅ |
-| 修复 | **重试预算对齐原版 cyanheads**：2 次固定（4s）→ 6 次指数退避（~61s 跨度，±25% jitter，覆盖 60s 黑洞窗口）；NET_RETRY_RE 扩 HTTP 5xx/429 | 本地已提交 | ✅ |
+| 修复 | **重试预算对齐原版 cyanheads**：2 次固定（4s）→ 6 次指数退避（~61s 跨度，±25% jitter，覆盖 60s 黑洞窗口）；NET_RETRY_RE 扩 HTTP 5xx/429 | v0.4.0 | ✅ |
 
 ### 1.3 验证手段
 
-- 离线测试 16/16 文件全绿（批量/预算/门控/互斥/串行化/原子写/降级链/技能注册/E 项/S2/压测 500 篇 70ms）
+- 离线测试 18/18 文件全绿（批量/预算/门控/互斥/串行化/原子写/降级链/技能注册/E 项/S2/PDF-OA 44 断言/真机反馈回归 17 断言/压测 500 篇 70ms）
 - 无代理真机复测多轮：20 篇建图 106 概念入图 / 并发 graph_add 串行无交错 / EPM 双通 / @ 归一化
+- **真机使用测试（v0.4.2）**：Cldn5/Arrb2/Nprl2 × 失眠课题全链路（实体归一 → 语义检索 → 批量 OA → PDF 下载签名校验 → PMC 正文精读）；反馈回归锁定 F1/F2/F3/F6
 - 发布自动化三连验证：push tag → Actions 测试 → Release 挂 tgz → NPM_TOKEN 自动 publish
 
 ### 1.4 生态补全（v0.4.0 已发布）
@@ -60,7 +61,6 @@
 | E5 | Semantic Scholar 直连五工具（`search_s2` / `get_s2_detail` / `get_s2_citations` / `get_s2_recommendations` / `match_paper_by_title`）；`S2_ENABLED` 门控 + 专用限速队列（无 key 3s/次 < 共享 100req/5min，有 key 1.1s/次） | v0.4.0 | ✅ v0.4.0 |
 | 测试 | `test/e-items-test.mjs`（E1–E4，13 断言）+ `test/s2-test.mjs`（E5，14 断言） | v0.4.0 | ✅ |
 | 文档 | SKILL/README/README_EN/cordis/index.js 同步到 25 工具 + 新配置 + 新路由 | v0.4.0 | ✅ v0.4.0 |
-| E6 | **`pubmed_fetch_pdf_oa`**（OA PDF 发现 + 可选下载）：聚合 Unpaywall + Europe PMC fullTextUrlList + OpenAlex；PDF 签名校验 + 链接兜底；默认存 `~/.dsh/dsh-pubmed-pdfs/`（agent 传 `outDir` 进工作区） | v0.4.2 | ✅ v0.4.2 |
 
 ### 1.5 统一搜索增强（v0.4.1 已发布）
 
@@ -70,6 +70,16 @@
 | E3c | `sources` 支持 `'s2'`（opt-in Semantic Scholar）与 `'all'`（四源） | v0.4.1 | ✅ |
 | E3d | `sort`（relevance/citations/year）+ `year` 跨源过滤（**下推各源查询**：pubmed mindate / EPM PUB_YEAR / OpenAlex from-to_publication_date / S2 year=，修复事后过滤返回 0 条） | v0.4.1 | ✅ |
 | 路由 | agent 工具描述补全：`search_articles`/`europepmc_search` 指向统一搜索 | v0.4.1 | ✅ |
+
+### 1.6 OA 全文与图谱去噪（v0.4.2 已发布）
+
+| 项 | 内容 | 版本 | 状态 |
+|---|---|---|---|
+| E6 | **`pubmed_fetch_pdf_oa`（第 26 个工具）**：DOI/PMID/PMCID **单个或批量**（≤10）→ 聚合 Unpaywall + Europe PMC fullTextUrlList + OpenAlex，去重排序的 OA 链接列表；`download:true` 存 PDF（只下载不解析）；**PDF 签名校验**（出版社 HTML 拦截页自动跳下一个候选）；默认 `~/.dsh/dsh-pubmed-pdfs/`，agent 传 `outDir` 进工作区；`UNPAYWALL_EMAIL` 配置 | v0.4.2 | ✅ v0.4.2 |
+| E3e | **检索→下载闭环**：统一搜索结果携带 `isOpenAccess`/`oaUrl`/`oaStatus`（OpenAlex/EPMC 免费返回，零额外请求）；`fetch_pdf_oa` 批量形式把 OA 命中一次转成下载列表 | v0.4.2 | ✅ |
+| 图谱去噪 | **五层根因修复**（用户三轮实测定位）：①关系跨度严格门（含任一停用词即弃，修复被同名遮蔽的死代码）②A2 语义门（端点 ∈ 本文关键词，`RELATION_ENDPOINT_REQUIRE_KEYWORD` 开关）③A3 mermaid 不再补入 count=0 端点 ④C `HEURISTIC_RELATIONS:false` 纯 curated 开关。效果：噪音文章 27 节点/6 关系 → 25 节点/2 有效关系，碎片=0 | v0.4.2 | ✅ |
+| 修复 | year 过滤**下推各源查询**（修复事后过滤返回 0 条）；F1 `includeSummaries` 默认值生效；F6 find_related 不再回含源 PMID；F3 pmcid 误传 PMID **自动换算** | v0.4.2 | ✅ |
+| 文档 | README **能力优先重构**（中英）：六大功能模块 + 场景串联替代工具罗列（-26% 行数）；工具清单降为附录 | v0.4.2 | ✅ |
 
 ---
 
@@ -118,6 +128,9 @@
 | 二.2/二.7 | sessionKeyOf 硬化、lookup_citation key 去重 | 缓议 |
 | 四.3/四.4 | CHANGELOG.md、sessionGraphs 内存上限 | 缓议 |
 | biome lint | 选型已定（父项目同款），未接入 | 缓议 |
+| S2 429 退避上限 | 无 key 共享池重度限流时 429+退避可拖慢调用（实测 60-90s）；对 S2 源限重试次数或缩短退避 | 缓议（v0.4.2 实测新增）|
+| OpenAlex 独立工具 | OpenAlex 已进统一搜索默认源；是否再出独立工具（含 concepts/OA 字段全量）待评估 | 缓议 |
+| 统一搜索 OA 过滤 | `minCitedBy` / `sourceType`（journal/preprint）等跨源过滤参数 | 缓议 |
 | Web UI 卡片 | 引用卡片/设置卡片（React + tsdown 双构建，架构级）——dsh-ai4scholar 最大差异化，成本最高 | 远期评估 |
 
 ---
@@ -139,6 +152,7 @@
 
 | 版本 | 内容 | 验收 |
 |---|---|---|
+| **v0.4.2** | **E6**（OA PDF 发现/下载，第 26 个工具）+ **E3e**（检索→下载闭环：结果 OA 标记 + 批量查询）+ **图谱去噪**（A1-A4 + C）+ year 下推修复 + F1/F6 修复 + README 能力优先重构 | 真机全链路验证（Cldn5/Arrb2/Nprl2 × 失眠：检索→OA 批量→签名校验下载→PMC 精读）；离线测试 18/18 文件绿；图谱噪音文章碎片=0 |
 | **v0.4.1** | **统一搜索增强**：默认三源（+OpenAlex）、S2 opt-in、`sort`/`year`（服务端下推）、agent 路由补全 | 真机验证（year 过滤修复、四源合并、OpenAlex 数据完整）；全套离线测试 16/16 绿 |
 | **v0.4.0** | P3.8b（反代可配）+ E1（npmmirror）+ E2（全文分页）+ E3/E4（统一搜索）+ E5（S2 直连）；P2（annotate_text）**因上游故障搁置**，恢复后单独发布 | E1–E5 + P3.8b 均已本地实现（见 §1.4）；全套离线测试 16/16 绿；发布后 npmmirror 1 分钟内可查；P2 待上游恢复后按 01 分册 §4 实施 |
 | v0.4.x+ | 缓议项按需捞取；Web UI 卡片立项评估 | — |
@@ -147,4 +161,5 @@
 
 - 付费 API 代理模式（ai4scholar.net 式积分制）——免费直连是本插件的存在理由
 - TypeScript / 构建管线迁移——纯 JS 免构建是 GitHub 直装的优势
+- **PDF 内容解析**——`fetch_pdf_oa` 只定位与下载（字节落盘），解析留给调用方；避免引入 PDF 解析依赖破坏纯 JS 免构建定位
 - 替代 01 分册的详细设计——本文只做总览与状态追踪
