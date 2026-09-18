@@ -337,7 +337,7 @@ dsh plugin --profile web update dsh-pubmed@latest     # or @0.4.2 for a specific
 
 ## Version history
 
-- **Unreleased (v0.4.3)** — **Graph & pipeline enhancements**: `graph_add` accepts batch `pmids`
+- **v0.4.3** — **Graph & pipeline enhancements**: `graph_add` accepts batch `pmids`
   (≤200, auto-fetch + enrichment); `fetch_fulltext` upgraded to a two-tier chain (PMC → Europe PMC
   fullTextXML — EPMC-only OA articles now have body text); **ID resolution cache** (negative results
   included, zero repeated lookups across the pipeline); batch-tool timeout budgets (120–180s);

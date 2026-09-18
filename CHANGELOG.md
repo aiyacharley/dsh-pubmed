@@ -2,7 +2,7 @@
 
 本文件自 v0.4.3 起维护，此前版本摘要见 README「版本历史」与 GitHub Releases。格式参照 Keep a Changelog。
 
-## [Unreleased]（计划随 v0.4.3 发布）
+## [0.4.3] — 2026-09-18
 
 ### Added
 - `pubmed_graph_add` 新增 `pmids` 批量形式（≤200）：内部自动取文 + 富集，"把检索结果加进图谱"一步到位
@@ -13,7 +13,7 @@
 
 ### Docs
 - SKILL.md 路由更新：pmids 捷径、两级链、ID 缓存、批量超时、`HEURISTIC_RELATIONS` / `RELATION_ENDPOINT_REQUIRE_KEYWORD` 配置键
-- 新建本 CHANGELOG；README 中英同步（中英能力描述 + 版本历史补 Unreleased 条目）
+- 新建本 CHANGELOG；README 中英同步（能力描述 + 版本历史）
 
 ## [0.4.2] — 2026-09-18
 

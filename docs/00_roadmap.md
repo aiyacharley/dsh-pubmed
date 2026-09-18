@@ -9,8 +9,8 @@
 
 | | |
 |---|---|
-| 当前版本 | v0.4.2（npm latest）· 26 工具 |
-| 下一版本 | **v0.4.3（已实现待发布）**：P1 ID 解析缓存 + P2 graph_add pmids 批量形式 + P3 fulltext 两级链/OA loc 工厂（见 §1.7）；P2 annotate_text 仍搁置 |
+| 当前版本 | v0.4.3（npm latest）· 26 工具 |
+| 下一版本 | v0.4.x+：P2 annotate_text（待上游恢复）+ 缓议项按需捞取 |
 | 维护原则 | 免费直连（不引入付费代理）；纯 JS 免构建；离线测试全覆盖；发布全自动 |
 
 ---
@@ -82,14 +82,14 @@
 | 修复 | year 过滤**下推各源查询**（修复事后过滤返回 0 条）；F1 `includeSummaries` 默认值生效；F6 find_related 不再回含源 PMID；F3 pmcid 误传 PMID **自动换算** | v0.4.2 | ✅ |
 | 文档 | README **能力优先重构**（中英）：六大功能模块 + 场景串联替代工具罗列（-26% 行数）；工具清单降为附录 | v0.4.2 | ✅ |
 
-### 1.7 v0.4.2 后增强（已实现，未发布 → 随 v0.4.3）
+### 1.7 v0.4.3（P1–P3 增强 + 文档同步）
 
 | 项 | 内容 | 版本 | 状态 |
 |---|---|---|---|
-| P1 | **ID 解析缓存**：pmid↔pmcid↔doi 解析结果插件内缓存（含负结果，防重复解析风暴）；检索→OA→全文→图谱串联链路重复 ID 零网络开销 | v0.4.3 | ✅ 待发布 |
-| P2 | **`graph_add` pmids 批量形式**（≤200，内部自动取文+富集，"把这些加进图谱"一步到位）+ 批量工具超时预算落地（批量 OA/统一搜索/带富集入图 120–180s） | v0.4.3 | ✅ 待发布 |
-| P3 | **fetch_fulltext 两级链**（NCBI PMC → Europe PMC fullTextXML，EPMC-only OA 也有正文）+ OA location 工厂/来源派发（每个候选位置带 unpaywall/europepmc/openalex 标注 + alsoIn，末尾 Best PDF 推荐，F3 换算 `converted` 回显）+ flag 归一化 | v0.4.3 | ✅ 待发布 |
-| docs | SKILL.md 路由更新（pmids 捷径 / 两级链 / ID 缓存 / 批量超时 / 新配置键）；README 中英同步；新建 CHANGELOG | v0.4.3 | ✅ 待发布 |
+| P1 | **ID 解析缓存**：pmid↔pmcid↔doi 解析结果插件内缓存（含负结果，防重复解析风暴）；检索→OA→全文→图谱串联链路重复 ID 零网络开销 | v0.4.3 | ✅ |
+| P2 | **`graph_add` pmids 批量形式**（≤200，内部自动取文+富集，"把这些加进图谱"一步到位）+ 批量工具超时预算落地（批量 OA/统一搜索/带富集入图 120–180s） | v0.4.3 | ✅ |
+| P3 | **fetch_fulltext 两级链**（NCBI PMC → Europe PMC fullTextXML，EPMC-only OA 也有正文）+ OA location 工厂/来源派发（每个候选位置带 unpaywall/europepmc/openalex 标注 + alsoIn，末尾 Best PDF 推荐，F3 换算 `converted` 回显）+ flag 归一化 | v0.4.3 | ✅ |
+| docs | SKILL.md 路由更新（pmids 捷径 / 两级链 / ID 缓存 / 批量超时 / 新配置键）；README 中英同步；新建 CHANGELOG | v0.4.3 | ✅ |
 
 ---
 
@@ -162,6 +162,7 @@
 
 | 版本 | 内容 | 验收 |
 |---|---|---|
+| **v0.4.3** | **P1**（ID 解析缓存，含负结果）+ **P2**（`graph_add` pmids 批量形式 ≤200 + 批量超时预算 120–180s）+ **P3**（`fetch_fulltext` 两级链 PMC → EPMC fullTextXML + OA loc 工厂/来源派发/Best PDF/`converted` 回显 + flag 归一化）+ 文档同步（SKILL/README/CHANGELOG 建档） | 五轮真机回归（26 工具全量×2 + F2 专项碎片=0 + PDF 端到端 Frontiers 2.85MB→pdf_scan 13 页）；离线测试 18/18 文件绿 |
 | **v0.4.2** | **E6**（OA PDF 发现/下载，第 26 个工具）+ **E3e**（检索→下载闭环：结果 OA 标记 + 批量查询）+ **图谱去噪**（A1-A4 + C）+ year 下推修复 + F1/F6 修复 + README 能力优先重构 | 真机全链路验证（Cldn5/Arrb2/Nprl2 × 失眠：检索→OA 批量→签名校验下载→PMC 精读）；离线测试 18/18 文件绿；图谱噪音文章碎片=0 |
 | **v0.4.1** | **统一搜索增强**：默认三源（+OpenAlex）、S2 opt-in、`sort`/`year`（服务端下推）、agent 路由补全 | 真机验证（year 过滤修复、四源合并、OpenAlex 数据完整）；全套离线测试 16/16 绿 |
 | **v0.4.0** | P3.8b（反代可配）+ E1（npmmirror）+ E2（全文分页）+ E3/E4（统一搜索）+ E5（S2 直连）；P2（annotate_text）**因上游故障搁置**，恢复后单独发布 | E1–E5 + P3.8b 均已本地实现（见 §1.4）；全套离线测试 16/16 绿；发布后 npmmirror 1 分钟内可查；P2 待上游恢复后按 01 分册 §4 实施 |
