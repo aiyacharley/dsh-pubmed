@@ -4,11 +4,12 @@
 [![Listed on dsh-plugin.org](https://dsh-plugin.org/badges/listed.svg)](https://dsh-plugin.org/plugins/aiyacharley/dsh-pubmed)
 
 > **An "entity-level + evidence-chain" engine for literature research**: one DeepSeek Harness (DSH)
-> plugin that unifies PubMed / Europe PMC / PubTator3 / Semantic Scholar — 25 native model tools,
+> plugin that unifies PubMed / Europe PMC / OpenAlex / PubTator3 / Semantic Scholar — **26 native model tools**,
 > no MCP client, no paid proxy, pure JS with zero build step.
 >
 > In one sentence: **upgrade from "keyword matching" to "entity normalization + relation semantics +
-> auditable evidence", turning 80% of mechanical database sifting into 20% high-quality reading time.**
+> auditable evidence + reachable OA full text", turning 80% of mechanical database sifting into 20%
+> high-quality reading time.**
 
 ---
 
@@ -118,6 +119,23 @@ supporting literature, and which directions your review already covers.
   (`get_s2_detail`), **paper recommendations** (`get_s2_recommendations`), **exact title matching**
   (`match_paper_by_title`), plus **all-field search** (`search_s2`, not biomedical-only).
   Official free API; usable without a key.
+
+### Highlight 4: Open-access full-text PDF — from "found" to "in hand"
+
+Search results are already tagged 🟢OA (OpenAlex/EPMC return it for free, zero extra requests); the agent
+hands the OA hits to `pubmed_fetch_pdf_oa` **in batch** (≤10 per call) to get one de-duplicated download
+list, then saves the PDFs with `download:true` (filenames keyed by PMID/DOI, **bytes only — never parsed**):
+
+```
+search_papers({ query: '...' })            # hits tagged 🟢OA + oaUrl
+fetch_pdf_oa({ pmids: [...] })             # all OA links in one call (hostType/version/license)
+fetch_pdf_oa({ pmids: [...], download: true, outDir: '<workspace>/dsh-pubmed-pdfs' })
+                                           # ✓ PMID31341288.pdf (1262KB)
+```
+
+Three sources aggregated (**Unpaywall** authoritative OA status + **Europe PMC** render links +
+**OpenAlex** best_oa_location); a publisher "HTML interstitial" is caught by **PDF signature validation**
+and the chain auto-advances to the next candidate (arXiv, repository copy) — a fake PDF is never saved.
 
 ---
 

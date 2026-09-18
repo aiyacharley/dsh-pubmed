@@ -5,10 +5,10 @@
 [![npm version](https://img.shields.io/npm/v/dsh-pubmed)](https://www.npmjs.com/package/dsh-pubmed)
 [![Listed on dsh-plugin.org](https://dsh-plugin.org/badges/listed.svg)](https://dsh-plugin.org/plugins/aiyacharley/dsh-pubmed)
 
-> **给科研文献检索装上"实体级 + 证据链"引擎**：PubMed / Europe PMC / PubTator3 / Semantic Scholar 四源一体的
-> DeepSeek Harness（DSH）插件，25 个原生模型工具，无 MCP 客户端、无付费代理、纯 JS 免构建。
+> **给科研文献检索装上"实体级 + 证据链 + 全文可达"引擎**：PubMed / Europe PMC / OpenAlex / PubTator3 / Semantic Scholar
+> 五源一体的 DeepSeek Harness（DSH）插件，**26 个原生模型工具**，无 MCP 客户端、无付费代理、纯 JS 免构建。
 >
-> 一句话：**把"关键词匹配"升级为"实体归一 + 关系语义 + 证据可审计"，把 80% 的机械筛库时间变成 20% 的高质量阅读时间。**
+> 一句话：**把"关键词匹配"升级为"实体归一 + 关系语义 + 证据可审计 + OA 全文可得"，把 80% 的机械筛库时间变成 20% 的高质量阅读时间。**
 
 ---
 
@@ -108,6 +108,22 @@ fetch_articles（自动入图）→ 多轮增量累积 → graph_get({format:'me
 - **Semantic Scholar 五工具**：补上 PubMed 生态缺失的三件事——**被引数**（`get_s2_detail`）、
   **论文推荐**（`get_s2_recommendations`）、**标题精确匹配**（`match_paper_by_title`），
   外加**全领域检索**（`search_s2`，不限于生物医学）。官方免费 API，无 key 也能用。
+
+### 亮点四：OA 全文 PDF —— 从"找到"到"拿到"
+
+检索结果自带 🟢OA 标记（OpenAlex/EPMC 免费返回，零额外请求），**agent 把 OA 命中批量交给
+`pubmed_fetch_pdf_oa`**（一次 ≤10 篇）即可拿到去重排序的下载链接；确认后 `download:true`
+把 PDF 存到本地（文件名用 PMID/DOI，**只下载不解析**）：
+
+```
+search_papers({ query: '...' })            # 命中标 🟢OA + oaUrl
+fetch_pdf_oa({ pmids: [...] })             # 一次拿全部 OA 链接（hostType/version/license）
+fetch_pdf_oa({ pmids: [...], download: true, outDir: '<工作区>/dsh-pubmed-pdfs' })
+                                           # ✓ PMID31341288.pdf (1262KB)
+```
+
+三源聚合（**Unpaywall** 权威 OA 状态 + **Europe PMC** render 链接 + **OpenAlex** best_oa_location）；
+出版社"HTML 拦截页"会被 **PDF 签名校验**识破并自动跳到下一个候选（如 arXiv/机构库），绝不把假 PDF 存给你。
 
 ---
 
