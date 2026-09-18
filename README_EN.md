@@ -32,6 +32,14 @@
 
 ## 🚀 Install (2-minute start)
 
+**Prerequisites**: install [Node.js ≥ 20](https://nodejs.org/), then start the DSH web environment with one command (first run downloads it automatically):
+
+```bash
+npx @deepseek-ai/dsh web
+```
+
+Once it's running, install the plugin with one command:
+
 ```bash
 # One command (official CLI, recommended)
 dsh plugin --profile web add dsh-pubmed@latest

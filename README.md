@@ -32,6 +32,14 @@
 
 ## 🚀 安装（2 分钟上手）
 
+**前置**：先装 [Node.js ≥ 20](https://nodejs.org/)，然后一行命令启动 DSH web 环境（首次会自动下载）：
+
+```bash
+npx @deepseek-ai/dsh web
+```
+
+启动后，一条命令安装本插件：
+
 ```bash
 # 一条命令安装（官方 CLI，推荐）
 dsh plugin --profile web add dsh-pubmed@latest
