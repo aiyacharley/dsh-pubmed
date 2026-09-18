@@ -25,11 +25,12 @@ description: Routing guide for the dsh-pubmed plugin's 26 PubMed / Europe PMC / 
 ## 建图链路（最重要的组合流）
 
 ```
-entity_id（文本→@ID）→ pubtator_search（@ID/关系式→文章）→ fetch_articles → 自动入图
+主链：entity_id（文本→@ID）→ pubtator_search（@ID/关系式→文章）→ fetch_articles → 自动入图
+捷径：graph_add({ pmids: [...] }) —— 一句话把检索命中的 PMID 直接入图（内部自动取文+富集）
 ```
 
 - `pubmed_fetch_articles` 在 AUTO_GRAPH 开启（默认）时**自动并入**会话图谱——不要额外手动 `graph_add`。
-- `pubmed_graph_add` 内部已做关键词提取 + PubTator 概念/关系富集——curated 关系边默认带 `evidencePmids` 支持文献（`PUBTATOR_EDGE_EVIDENCE:false` 可关）。关键词预览用 `graph_add({dryRun:true})`。
+- `pubmed_graph_add` 支持两种入参：`articles`（完整文章对象）或 **`pmids`（≤200，内部自动取文）**——用户说"把这些加进图谱"时用 pmids 形式一步到位。内部已做关键词提取 + PubTator 概念/关系富集——curated 关系边默认带 `evidencePmids` 支持文献（`PUBTATOR_EDGE_EVIDENCE:false` 可关）。关键词预览用 `graph_add({dryRun:true})`。
 - 会话图谱累积后 `pubmed_graph_commit` 显式持久化到用户图谱（默认不自动写）。
 - `pubmed_graph_get({ format:'mermaid' })` 可直接渲染为可视化卡片。
 
@@ -47,6 +48,8 @@ entity_id（文本→@ID）→ pubtator_search（@ID/关系式→文章）→ fe
 - PubTator3 官方 3 req/s：所有 pubtator 工具已走专用 350ms 队列，并发调用会被串行化（属正常，不是卡死）。
 - E-utilities：有 API key ≈8 req/s，无 key ≈2.8 req/s，同样已内置队列。
 - Semantic Scholar：无 key 100 req/5min（共享 IP，专用 ~3s 队列）；配免费 `S2_API_KEY` 后提速至 1 req/s（~1.1s 队列）。被限流会自动重试。
+- **ID 解析缓存**：pmid↔pmcid↔doi 的解析结果在插件内缓存（含负结果）——串联链路（检索→OA→全文→图谱）重复遇到同一 ID 时零网络开销，不必刻意规避重复解析。
+- **批量调用耗时长是正常的**：批量 OA（10 id）、四源搜索、带富集的入图都有更长的超时预算（120-180s）；未到预算不要中断重试。
 - **重试与降级（v0.3.5+）**：网络类失败自动重试（指数退避）+ EBI 降级链；报错会区分"本地代理已挂"与"目标不可达"。
 - **OA 工作流（v0.4.2+）**：`search_papers` 结果自带 `isOpenAccess`/`oaUrl` 标记 → 把 🟢OA 命中的 PMID/DOI **批量**交给 `pubmed_fetch_pdf_oa`（一次 ≤10 个）→ 拿到 PDF 链接列表 → 确认后 `download:true` 存盘。**download 时必须显式传 `outDir: '<会话工作区>/dsh-pubmed-pdfs'`**——插件的默认目录是 `~/.dsh/dsh-pubmed-pdfs/`（插件不知道你的会话工作区，**你知道**，就在你的系统提示里）。PDF 只下载不解析。
 
@@ -56,7 +59,7 @@ entity_id（文本→@ID）→ pubtator_search（@ID/关系式→文章）→ fe
 |---|---|---|
 | `pubmed_search_articles` | query（字段语法）+ 日期/类型过滤 | PMID 列表 + ESummary 摘要 |
 | `pubmed_fetch_articles` | pmids（≤200） | 结构化文章（作者/摘要/MeSH/基金/DOI）|
-| `pubmed_fetch_fulltext` | pmids/pmcids/dois（互斥） | 分节全文（可 offset/maxCharacters 分页续读）|
+| `pubmed_fetch_fulltext` | pmids/pmcids/dois（互斥） | 分节全文（两级链：PMC → Europe PMC fullTextXML；可 offset/maxCharacters 分页续读）|
 | `pubmed_fetch_pdf_oa` | doi/pmid/pmcid 单个 或 pmids[]/dois[]/pmcids[] 批量（≤10）+ download | 每篇的 OA 链接列表（PDF 直链优先 + license/version/OA 状态）；批量返回 `results[]` + 汇总；`download:true` 逐篇存 PDF |
 | `pubmed_format_citations` | pmids + styles | APA/MLA/BibTeX/RIS/Vancouver |
 | `pubmed_find_related` | pmid + relation | 相似/被引/参考文献列表 |
@@ -76,7 +79,7 @@ entity_id（文本→@ID）→ pubtator_search（@ID/关系式→文章）→ fe
 | `pubmed_get_s2_citations` | paperId | 引用该篇的文章列表（S2 引文图）|
 | `pubmed_get_s2_recommendations` | paperId | "读了这篇还读哪些"推荐列表 |
 | `pubmed_match_paper_by_title` | title | 标题精确匹配 → ID/被引数/元数据 |
-| `pubmed_graph_add` | articles + dryRun | 增量入图（+节点/边统计）|
+| `pubmed_graph_add` | articles 或 pmids（≤200）+ dryRun | 增量入图（+节点/边统计）；pmids 形式内部自动取文 |
 | `pubmed_graph_get` | scope + format + minCount | 节点/边 JSON 或 mermaid 卡片|
 | `pubmed_graph_commit` | confirm | 会话图谱 → 用户图谱持久化|
 | `pubmed_graph_reset` | scope | 清空会话（或用户）图谱|
@@ -106,7 +109,8 @@ entity_id（文本→@ID）→ pubtator_search（@ID/关系式→文章）→ fe
 ## 易错点（务必记住）
 
 - **`pubmed_extract_keywords` 已废弃**——`graph_add` 内部已做提取；预览用 `graph_add({dryRun:true})`。
-- **`AUTO_GRAPH` 默认开**——fetch_articles 自动入图，不要再手动 graph_add。
+- **`AUTO_GRAPH` 默认开**——fetch_articles 自动入图，不要再手动 graph_add；用户明确要"把检索结果加进图谱"时，`graph_add({pmids})` 一步到位。
+- **fetch_fulltext 是两级链**（PMC → Europe PMC fullTextXML）——EPMC-only OA 文章也有正文；两层级都拿不到才报 unavailable。
 - **用户图谱持久化路径**：`~/.dsh/dsh-pubmed-graph.json`（graph_commit 显式写入）。
 - **无代理（大陆直连）能力矩阵**：EBI 双工具全功能；PubTator/NCBI 工具随直连窗口波动（自动重试 + search/convert/find_related 有 EBI 降级）；`spell_check`/`lookup_mesh`/`similar` 为 NCBI 独有；可配 `*_BASE_URL` 自建反代兜底。
 - **@实体 ID 链路**：entity_id 输出（如 `@GENE_CD79A`）→ relations/search 输入；漏 @ 会自动补齐。
